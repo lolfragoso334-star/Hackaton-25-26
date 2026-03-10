@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeuroVida – Tu espacio seguro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="stylesheet" href="CSS/neurovida.css"/>
+</head>
+<body>
+
+  <a class="skip-link" href="#main-content">Ir al contenido principal</a>
+
+  <!-- ════════════════════════ HEADER ════════════════════════ -->
+  <header role="banner">
+    <div class="header-title">
+      <div class="logo-icon" aria-hidden="true">🧠</div>
+      <h1>Neuro<span>Vida</span></h1>
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openModal('configuracion')" aria-label="Configuración">
+        ⚙️
+      </button>
+      <button class="icon-btn user-btn" onclick="openModal('usuario')" aria-label="Perfil de usuario">
+        👤 <span class="user-greeting">Hola, María</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════ MAIN ════════════════════════ -->
+  <main id="main-content">
+
+    <!-- ── Acciones rápidas ── -->
+    <section aria-labelledby="acciones-title" style="margin-bottom:32px; margin-top:8px;">
+      <h2 class="section-title" id="acciones-title">🚀 Acceso rápido</h2>
+      <div class="quick-actions">
+        <a class="big-btn btn-seguimiento" href="HTML/tareas.html" aria-label="Mis tareas">
+          <span class="icon" aria-hidden="true">✅</span><span class="btn-label">Tareas</span>
+        </a>
+        <button class="big-btn btn-diario" onclick="openModal('diario')" aria-label="Mi diario">
+          <span class="icon" aria-hidden="true">📖</span><span class="btn-label">Mi Diario</span>
+        </button>
+        <button class="big-btn btn-ayuda" onclick="openModal('ayuda')" aria-label="Necesito ayuda">
+          <span class="icon" aria-hidden="true">🆘</span><span class="btn-label">Necesito Ayuda</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Mensajes del día ── -->
+    <section aria-labelledby="mensajes-title">
+      <h2 class="section-title" id="mensajes-title">📬 Mensajes del día</h2>
+      <div class="messages-grid">
+
+        <article class="msg-card blue">
+          <span class="tag">Recordatorio</span>
+          <h3>🕐 Sesión con la Dra. López</h3>
+          <p>Hoy a las <strong>16:00</strong> tienes tu consulta semanal. Recuerda llevar tu diario.</p>
+        </article>
+
+        <article class="msg-card green">
+          <span class="tag">Logro del día</span>
+          <h3>⭐ ¡Llevas 7 días seguidos!</h3>
+          <p>Has completado tu rutina de relajación 7 días consecutivos. ¡Muy bien hecho!</p>
+        </article>
+
+        <article class="msg-card orange">
+          <span class="tag">Consejo</span>
+          <h3>💡 Técnica de respiración 4-7-8</h3>
+          <p>Inhala 4 seg, retén 7 seg, exhala 8 seg. Ideal para momentos de tensión.</p>
+        </article>
+
+        <article class="msg-card red">
+          <span class="tag">Alerta suave</span>
+          <h3>😴 Descanso pendiente</h3>
+          <p>Ayer dormiste menos de 6 horas. Tómate un momento para descansar hoy.</p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ── Calendario ── -->
+    <section aria-labelledby="calendario-title">
+      <h2 class="section-title" id="calendario-title">📅 Mi Calendario</h2>
+      <div class="calendar-wrapper">
+        <div class="cal-header">
+          <h2 id="cal-month-label">Marzo 2026</h2>
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)" aria-label="Mes anterior">‹</button>
+            <button onclick="changeMonth( 1)" aria-label="Mes siguiente">›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-grid" role="grid" aria-label="Calendario"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ════════════════════════ FOOTER ════════════════════════ -->
+  <footer role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>🧠 NeuroVida</h4>
+        <p>Plataforma de acompañamiento para personas con diversidad neurológica.</p>
+        <br/>
+        <p>📍 Calle Bienestar 14, Madrid, España</p>
+        <p>📞 +34 900 123 456</p>
+      </div>
+      <div class="footer-col">
+        <h4>Servicios</h4>
+        <a href="#">Seguimiento diario</a>
+        <a href="#">Diario personal</a>
+        <a href="#">Recursos de ayuda</a>
+        <a href="#">Conexión con especialistas</a>
+      </div>
+      <div class="footer-col">
+        <h4>Información</h4>
+        <a href="#">Política de privacidad</a>
+        <a href="#">Accesibilidad</a>
+        <a href="#">Preguntas frecuentes</a>
+        <a href="#">Contacto</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 NeuroVida S.L. — Todos los derechos reservados.</span>
+      <span>Diseñado con ❤️ para la diversidad neurológica</span>
+    </div>
+  </footer>
+
+  <!-- ════════════════════════ MODAL ════════════════════════ -->
+  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title"></h3>
+      <p  id="modal-body"></p>
+      <button class="modal-close" onclick="closeModal()">✔ Entendido</button>
+    </div>
+  </div>
+
+  <script src="JS/neurovida.js"></script>
+</body>
+</html>
