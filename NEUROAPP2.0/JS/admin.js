@@ -394,3 +394,114 @@ document.getElementById("btn-cancelar-form").addEventListener("click", cerrarFor
    INIT
 ══════════════════════════════════════════════════════════════ */
 renderLista();
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICACIONES DE AYUDA
+   Clave compartida con tareas.js: "neurovida_notif"
+   Estructura: { id, tareaTitulo, pasoOrden, pasoTexto, mensaje, hora, leida }
+══════════════════════════════════════════════════════════════ */
+const NOTIF_KEY = "neurovida_notif";
+
+function cargarNotifs() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); }
+  catch(e) { return []; }
+}
+
+function guardarNotifs(notifs) {
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs));
+}
+
+function countNoLeidas(notifs) {
+  return notifs.filter(n => !n.leida).length;
+}
+
+function horaFormateada(iso) {
+  const d   = new Date(iso);
+  const hoy = new Date();
+  const hora = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === hoy.toDateString()) return `Hoy · ${hora}`;
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + ` · ${hora}`;
+}
+
+function actualizarBadge() {
+  const n     = countNoLeidas(cargarNotifs());
+  const badge = document.getElementById("campana-badge");
+  if (n > 0) { badge.textContent = n > 99 ? "99+" : n; badge.classList.remove("hidden"); }
+  else        { badge.classList.add("hidden"); }
+}
+
+function renderNotifs() {
+  const notifs = cargarNotifs();
+  const lista  = document.getElementById("notif-lista");
+  const vacia  = document.getElementById("notif-vacia");
+
+  actualizarBadge();
+  lista.innerHTML = "";
+
+  if (notifs.length === 0) { vacia.classList.remove("hidden"); return; }
+  vacia.classList.add("hidden");
+
+  [...notifs].reverse().forEach(n => {
+    const div = document.createElement("div");
+    div.className = "notif-item" + (n.leida ? "" : " no-leida");
+    div.innerHTML = `
+      <div class="notif-avatar">🙋</div>
+      <div class="notif-cuerpo">
+        <p class="notif-nombre">Usuario · <strong>${n.tareaTitulo}</strong></p>
+        <p class="notif-tarea-paso">Paso ${n.pasoOrden}: ${n.pasoTexto}</p>
+        <p class="notif-mensaje">"${n.mensaje}"</p>
+        <p class="notif-hora">${horaFormateada(n.hora)}</p>
+      </div>
+      <button class="notif-btn-leer" data-id="${n.id}" aria-label="Marcar como leída" title="Marcar como leída">✓</button>
+    `;
+    div.querySelector(".notif-btn-leer").addEventListener("click", e => {
+      e.stopPropagation();
+      const all = cargarNotifs();
+      const idx = all.findIndex(x => x.id === n.id);
+      if (idx >= 0) { all[idx].leida = true; guardarNotifs(all); }
+      renderNotifs();
+    });
+    lista.appendChild(div);
+  });
+}
+
+// Abrir / cerrar panel
+document.getElementById("btn-campana").addEventListener("click", e => {
+  e.stopPropagation();
+  const panel    = document.getElementById("panel-notif");
+  const backdrop = document.getElementById("notif-backdrop");
+  if (!panel.classList.contains("hidden")) {
+    panel.classList.add("hidden");
+    backdrop.classList.add("hidden");
+  } else {
+    renderNotifs();
+    panel.classList.remove("hidden");
+    backdrop.classList.remove("hidden");
+  }
+});
+
+function cerrarPanelNotif() {
+  document.getElementById("panel-notif").classList.add("hidden");
+  document.getElementById("notif-backdrop").classList.add("hidden");
+}
+
+document.getElementById("btn-cerrar-notif").addEventListener("click", cerrarPanelNotif);
+document.getElementById("notif-backdrop").addEventListener("click", cerrarPanelNotif);
+
+document.getElementById("btn-marcar-todas").addEventListener("click", () => {
+  guardarNotifs(cargarNotifs().map(n => ({ ...n, leida: true })));
+  renderNotifs();
+});
+
+// Actualizar badge cada 2s (detecta mensajes enviados desde tareas.html)
+setInterval(actualizarBadge, 2000);
+
+// Detectar cambios de localStorage en la misma pestaña (entre páginas)
+window.addEventListener("storage", e => {
+  if (e.key === NOTIF_KEY) {
+    actualizarBadge();
+    if (!document.getElementById("panel-notif").classList.contains("hidden")) renderNotifs();
+  }
+});
+
+actualizarBadge();

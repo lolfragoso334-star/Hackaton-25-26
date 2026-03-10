@@ -335,16 +335,22 @@ document.getElementById("modal-enviar").addEventListener("click", () => {
   const mensaje = document.getElementById("modal-textarea").value.trim();
   if (!mensaje) return;
 
-  /* TODO: enviar a la BD / API de notificaciones al tutor
-     fetch('/api/ayuda', {
-       method: 'POST',
-       body: JSON.stringify({
-         tareaId:  tareaActiva.id,
-         pasoId:   tareaActiva.pasos[pasoActual].id,
-         mensaje
-       })
-     }); */
-  console.log("Mensaje de ayuda enviado:", mensaje);
+  // Guardar notificación en localStorage → el admin la verá en su campana
+  const paso = tareaActiva.pasos[pasoActual];
+  const notifs = (() => {
+    try { return JSON.parse(localStorage.getItem("neurovida_notif") || "[]"); }
+    catch(e) { return []; }
+  })();
+  notifs.push({
+    id:          Date.now() + "-" + Math.random().toString(36).slice(2),
+    tareaTitulo: tareaActiva.titulo,
+    pasoOrden:   paso.orden,
+    pasoTexto:   paso.instruccion_texto,
+    mensaje,
+    hora:        new Date().toISOString(),
+    leida:       false,
+  });
+  localStorage.setItem("neurovida_notif", JSON.stringify(notifs));
 
   cerrarModal();
 

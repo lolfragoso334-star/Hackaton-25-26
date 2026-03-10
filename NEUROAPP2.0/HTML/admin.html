@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Admin – NeuroVida</title>
-  <link rel="stylesheet" href="../CSS/admin.css"/>
+  <link rel="stylesheet" href="../CSS/admin.css" />
 </head>
+
 <body>
 
   <!-- ════════════════════════ HEADER ════════════════════════ -->
@@ -35,9 +37,31 @@
           </div>
         </div>
         <button class="icon-btn" aria-label="Configuración">⚙️</button>
+
+        <!-- ── CAMPANA ── -->
+        <button class="icon-btn campana-btn" id="btn-campana" aria-label="Notificaciones de ayuda">
+          🔔
+          <span class="campana-badge hidden" id="campana-badge">0</span>
+        </button>
       </div>
     </div>
   </header>
+
+  <!-- ════════════ PANEL NOTIFICACIONES ════════════ -->
+  <div id="panel-notif" class="panel-notif hidden" role="dialog" aria-label="Notificaciones de ayuda">
+    <div class="notif-header">
+      <h2 class="notif-titulo">🔔 Solicitudes de ayuda</h2>
+      <button id="btn-cerrar-notif" class="notif-cerrar" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="notif-lista" class="notif-lista"></div>
+    <div id="notif-vacia" class="notif-vacia hidden">
+      <p>🎉 Sin solicitudes pendientes</p>
+    </div>
+    <div class="notif-footer">
+      <button id="btn-marcar-todas" class="btn-marcar-todas">✓ Marcar todas como leídas</button>
+    </div>
+  </div>
+  <div id="notif-backdrop" class="notif-backdrop hidden"></div>
 
   <!-- ════════════════════════ LAYOUT ════════════════════════ -->
   <div class="admin-layout">
@@ -78,14 +102,16 @@
         <!-- Título -->
         <div class="form-field">
           <label class="form-label" for="campo-titulo">Título de la tarea <span class="req">*</span></label>
-          <input id="campo-titulo" class="form-input" type="text" placeholder="Ej: Montar servidor" maxlength="80" required/>
+          <input id="campo-titulo" class="form-input" type="text" placeholder="Ej: Montar servidor" maxlength="80"
+            required />
           <span class="form-hint">Máximo 80 caracteres</span>
         </div>
 
         <!-- Descripción -->
         <div class="form-field">
           <label class="form-label" for="campo-desc">Descripción</label>
-          <textarea id="campo-desc" class="form-textarea" rows="2" placeholder="Breve explicación de la tarea..."></textarea>
+          <textarea id="campo-desc" class="form-textarea" rows="2"
+            placeholder="Breve explicación de la tarea..."></textarea>
         </div>
 
         <!-- Estado -->
@@ -139,4 +165,5 @@
 
   <script src="../JS/admin.js"></script>
 </body>
+
 </html>
