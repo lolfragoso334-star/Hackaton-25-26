@@ -1,39 +1,14 @@
 /* ══════════════════════════════════════════════════════════════
-   ESTADO GLOBAL
-   TODO: sustituir el array `tareas` por llamadas reales a la BD:
-     GET    /api/tareas          → cargar lista
-     POST   /api/tareas          → crear tarea
-     PUT    /api/tareas/:id      → actualizar tarea
-     DELETE /api/tareas/:id      → borrar tarea
+   admin.js — Panel de administración NeuroVida + Supabase
 ══════════════════════════════════════════════════════════════ */
-const STORAGE_KEY = "neurovida_tareas";
 
-// Cargar desde localStorage (o arrancar vacío)
-let tareas = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-
-// Sincronizar contadores con los ids ya existentes para no colisionar
-let idCounter = tareas.length > 0
-  ? Math.max(...tareas.map(t => parseInt(t.id) || 0)) + 1
-  : 1;
-let pasoIdCounter = (() => {
-  const ids = tareas.flatMap(t => t.pasos.map(p => parseInt(p.id.replace("p","")) || 0));
-  return ids.length > 0 ? Math.max(...ids) + 1 : 1;
-})();
-
-let tareaEditando = null;   // id de la tarea que se está editando (null = nueva)
-let tareaABorrar  = null;   // id pendiente de confirmación de borrado
-
-/* Persiste el array en localStorage — reemplazar por fetch a BD cuando esté listo */
-function guardarStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tareas));
-}
+let tareas        = [];
+let tareaEditando = null;
+let tareaABorrar  = null;
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════════ */
-function uid()     { return String(idCounter++); }
-function pasoUid() { return "p" + String(pasoIdCounter++); }
-
 function calcProgreso(pasos) {
   const total  = pasos.length;
   const hechos = pasos.filter(p => p.estado === "completado").length;
@@ -61,27 +36,33 @@ function toast(msg, tipo = "") {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   CARGA INICIAL DESDE SUPABASE
+══════════════════════════════════════════════════════════════ */
+async function cargarTareas() {
+  const { data, error } = await sbGetTareas();
+  if (error) { toast("⚠ Error al cargar tareas", "rojo"); return; }
+  tareas = data;
+  renderLista();
+}
+
+/* ══════════════════════════════════════════════════════════════
    RENDERIZADO — LISTA IZQUIERDA
 ══════════════════════════════════════════════════════════════ */
 function renderLista() {
   const lista = document.getElementById("lista-admin");
   const vacia = document.getElementById("lista-vacia");
 
-  // Stats del header
   document.getElementById("stat-total").textContent = tareas.length;
   document.getElementById("stat-pasos").textContent =
-    tareas.reduce((acc, t) => acc + t.pasos.length, 0);
+    tareas.reduce((acc, t) => acc + (t.pasos || []).length, 0);
 
   lista.innerHTML = "";
 
-  if (tareas.length === 0) {
-    vacia.classList.remove("hidden");
-    return;
-  }
+  if (tareas.length === 0) { vacia.classList.remove("hidden"); return; }
   vacia.classList.add("hidden");
 
   tareas.forEach(tarea => {
-    const { total, pct } = calcProgreso(tarea.pasos);
+    const { total, pct } = calcProgreso(tarea.pasos || []);
 
     const card = document.createElement("div");
     card.className = "admin-tarea-card" + (tareaEditando === tarea.id ? " activa" : "");
@@ -107,7 +88,6 @@ function renderLista() {
       </div>
     `;
 
-    // Click en la card → editar
     card.addEventListener("click", e => {
       if (e.target.closest(".btn-card-accion")) return;
       abrirFormEditar(tarea.id);
@@ -115,17 +95,11 @@ function renderLista() {
     card.addEventListener("keydown", e => {
       if (e.key === "Enter" || e.key === " ") abrirFormEditar(tarea.id);
     });
-
-    // Botón editar
     card.querySelector(".editar").addEventListener("click", e => {
-      e.stopPropagation();
-      abrirFormEditar(tarea.id);
+      e.stopPropagation(); abrirFormEditar(tarea.id);
     });
-
-    // Botón borrar
     card.querySelector(".borrar").addEventListener("click", e => {
-      e.stopPropagation();
-      confirmarBorrado(tarea.id);
+      e.stopPropagation(); confirmarBorrado(tarea.id);
     });
 
     lista.appendChild(card);
@@ -133,7 +107,7 @@ function renderLista() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   FORMULARIO — abrir para NUEVA tarea
+   FORMULARIO
 ══════════════════════════════════════════════════════════════ */
 function abrirFormNueva() {
   tareaEditando = null;
@@ -144,35 +118,27 @@ function abrirFormNueva() {
   document.getElementById("campo-titulo").focus();
 }
 
-/* ══════════════════════════════════════════════════════════════
-   FORMULARIO — abrir para EDITAR tarea existente
-══════════════════════════════════════════════════════════════ */
 function abrirFormEditar(id) {
   const tarea = tareas.find(t => t.id === id);
   if (!tarea) return;
 
   tareaEditando = id;
-
   document.getElementById("form-modo-label").textContent = "✏️ Editando tarea";
   document.getElementById("campo-titulo").value  = tarea.titulo;
   document.getElementById("campo-desc").value    = tarea.descripcion || "";
   document.getElementById("campo-estado").value  = tarea.estado;
 
-  // Cargar pasos
   const listaPasos = document.getElementById("lista-pasos");
   listaPasos.innerHTML = "";
-  tarea.pasos.forEach(p => añadirFilaPaso(p));
+  (tarea.pasos || []).forEach(p => añadirFilaPaso(p));
   actualizarContadorPasos();
 
   document.getElementById("form-placeholder").classList.add("hidden");
   document.getElementById("form-tarea").classList.remove("hidden");
-  renderLista(); // refrescar activa
+  renderLista();
   document.getElementById("campo-titulo").focus();
 }
 
-/* ══════════════════════════════════════════════════════════════
-   FORMULARIO — limpiar
-══════════════════════════════════════════════════════════════ */
 function limpiarForm() {
   document.getElementById("campo-titulo").value = "";
   document.getElementById("campo-desc").value   = "";
@@ -190,15 +156,14 @@ function cerrarForm() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   PASOS — añadir fila al formulario
+   PASOS
 ══════════════════════════════════════════════════════════════ */
 function añadirFilaPaso(paso = null) {
   const listaPasos = document.getElementById("lista-pasos");
-  const idx = listaPasos.children.length + 1;
-
-  const id       = paso ? paso.id    : pasoUid();
-  const texto    = paso ? paso.instruccion_texto : "";
-  const critico  = paso ? paso.es_critico : false;
+  const idx    = listaPasos.children.length + 1;
+  const id     = paso ? paso.id    : "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  const texto  = paso ? paso.instruccion_texto : "";
+  const critico = paso ? paso.es_critico : false;
 
   const div = document.createElement("div");
   div.className = "paso-item";
@@ -225,7 +190,6 @@ function añadirFilaPaso(paso = null) {
     />
   `;
 
-  // Eliminar paso
   div.querySelector(".btn-eliminar-paso").addEventListener("click", () => {
     div.remove();
     renumerarPasos();
@@ -234,11 +198,7 @@ function añadirFilaPaso(paso = null) {
 
   listaPasos.appendChild(div);
   actualizarContadorPasos();
-
-  // Foco automático si es nuevo
-  if (!paso) {
-    div.querySelector(".paso-input").focus();
-  }
+  if (!paso) div.querySelector(".paso-input").focus();
 }
 
 function renumerarPasos() {
@@ -253,9 +213,9 @@ function actualizarContadorPasos() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GUARDAR TAREA (crear o actualizar)
+   GUARDAR TAREA (crear o actualizar) — Supabase
 ══════════════════════════════════════════════════════════════ */
-document.getElementById("form-tarea").addEventListener("submit", e => {
+document.getElementById("form-tarea").addEventListener("submit", async e => {
   e.preventDefault();
 
   const titulo = document.getElementById("campo-titulo").value.trim();
@@ -270,77 +230,45 @@ document.getElementById("form-tarea").addEventListener("submit", e => {
   const desc   = document.getElementById("campo-desc").value.trim();
   const estado = document.getElementById("campo-estado").value;
 
-  // Recoger pasos
   const filasPasos = document.querySelectorAll(".paso-item");
   let hayErrorPaso = false;
   const pasos = Array.from(filasPasos).map((el, i) => {
     const input   = el.querySelector(".paso-input");
     const texto   = input.value.trim();
     const critico = el.querySelector(".paso-critico-check").checked;
-
-    if (!texto) {
-      input.classList.add("error");
-      hayErrorPaso = true;
-    } else {
-      input.classList.remove("error");
-    }
-
+    if (!texto) { input.classList.add("error"); hayErrorPaso = true; }
+    else          input.classList.remove("error");
     return {
       id:                el.dataset.pasoId,
       orden:             i + 1,
       instruccion_texto: texto,
       imagen_url:        null,
       es_critico:        critico,
-      estado:            "pendiente",  // los pasos siempre arrancan pendientes al guardar
+      estado:            "pendiente",
     };
   });
 
-  if (hayErrorPaso) {
-    toast("⚠ Rellena todos los pasos o elimínalos", "rojo");
-    return;
-  }
+  if (hayErrorPaso) { toast("⚠ Rellena todos los pasos o elimínalos", "rojo"); return; }
+
+  document.getElementById("btn-guardar").disabled = true;
 
   if (tareaEditando) {
-    // ── ACTUALIZAR ──
-    const idx = tareas.findIndex(t => t.id === tareaEditando);
-    if (idx >= 0) {
-      // Conservar estado de pasos ya existentes
-      pasos.forEach(p => {
-        const anterior = tareas[idx].pasos.find(ap => ap.id === p.id);
-        if (anterior) p.estado = anterior.estado;
-      });
-      tareas[idx] = { ...tareas[idx], titulo, descripcion: desc, estado, pasos };
-    }
-    guardarStorage();
+    const { error } = await sbActualizarTarea(tareaEditando, { titulo, descripcion: desc, estado, pasos });
+    if (error) { toast("⚠ Error al guardar en Supabase", "rojo"); document.getElementById("btn-guardar").disabled = false; return; }
     toast("✅ Tarea actualizada", "verde");
-
-    /* TODO: PUT /api/tareas/${tareaEditando}
-       fetch(`/api/tareas/${tareaEditando}`, {
-         method: 'PUT',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify(tareas[idx])
-       }); */
-
   } else {
-    // ── CREAR ──
-    const nueva = { id: uid(), titulo, descripcion: desc, estado, pasos };
-    tareas.push(nueva);
-    guardarStorage();
+    const { error } = await sbCrearTarea({ titulo, descripcion: desc, estado, pasos });
+    if (error) { toast("⚠ Error al crear en Supabase", "rojo"); document.getElementById("btn-guardar").disabled = false; return; }
     toast("✅ Tarea creada", "verde");
-
-    /* TODO: POST /api/tareas
-       fetch('/api/tareas', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify(nueva)
-       }); */
   }
 
+  document.getElementById("btn-guardar").disabled = false;
   cerrarForm();
+  await cargarTareas();
 });
 
 /* ══════════════════════════════════════════════════════════════
-   BORRADO
+   BORRADO — Supabase
 ══════════════════════════════════════════════════════════════ */
 function confirmarBorrado(id) {
   tareaABorrar = id;
@@ -352,27 +280,20 @@ document.getElementById("modal-borrar-cancelar").addEventListener("click", () =>
   document.getElementById("modal-borrar").classList.add("hidden");
 });
 
-document.getElementById("modal-borrar-confirmar").addEventListener("click", () => {
+document.getElementById("modal-borrar-confirmar").addEventListener("click", async () => {
   if (!tareaABorrar) return;
-
-  tareas = tareas.filter(t => t.id !== tareaABorrar);
-  guardarStorage();
-
-  /* TODO: DELETE /api/tareas/${tareaABorrar}
-     fetch(`/api/tareas/${tareaABorrar}`, { method: 'DELETE' }); */
-
+  const { error } = await sbBorrarTarea(tareaABorrar);
+  if (error) { toast("⚠ Error al borrar", "rojo"); return; }
   if (tareaEditando === tareaABorrar) cerrarForm();
   tareaABorrar = null;
   document.getElementById("modal-borrar").classList.add("hidden");
-  renderLista();
   toast("🗑️ Tarea eliminada", "rojo");
+  await cargarTareas();
 });
 
-// Cerrar modal al hacer click fuera
 document.getElementById("modal-borrar").addEventListener("click", e => {
   if (e.target === e.currentTarget) {
-    tareaABorrar = null;
-    e.currentTarget.classList.add("hidden");
+    tareaABorrar = null; e.currentTarget.classList.add("hidden");
   }
 });
 
@@ -387,34 +308,12 @@ document.addEventListener("keydown", e => {
    EVENTOS GENERALES
 ══════════════════════════════════════════════════════════════ */
 document.getElementById("btn-nueva-tarea").addEventListener("click", abrirFormNueva);
-document.getElementById("btn-add-paso").addEventListener("click",    () => añadirFilaPaso());
+document.getElementById("btn-add-paso").addEventListener("click", () => añadirFilaPaso());
 document.getElementById("btn-cancelar-form").addEventListener("click", cerrarForm);
 
 /* ══════════════════════════════════════════════════════════════
-   INIT
+   NOTIFICACIONES — Supabase
 ══════════════════════════════════════════════════════════════ */
-renderLista();
-
-/* ══════════════════════════════════════════════════════════════
-   NOTIFICACIONES DE AYUDA
-   Clave compartida con tareas.js: "neurovida_notif"
-   Estructura: { id, tareaTitulo, pasoOrden, pasoTexto, mensaje, hora, leida }
-══════════════════════════════════════════════════════════════ */
-const NOTIF_KEY = "neurovida_notif";
-
-function cargarNotifs() {
-  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); }
-  catch(e) { return []; }
-}
-
-function guardarNotifs(notifs) {
-  localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs));
-}
-
-function countNoLeidas(notifs) {
-  return notifs.filter(n => !n.leida).length;
-}
-
 function horaFormateada(iso) {
   const d   = new Date(iso);
   const hoy = new Date();
@@ -423,25 +322,26 @@ function horaFormateada(iso) {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + ` · ${hora}`;
 }
 
-function actualizarBadge() {
-  const n     = countNoLeidas(cargarNotifs());
+async function actualizarBadge() {
+  const { data } = await sbGetNotificaciones();
+  const n = (data || []).filter(n => !n.leida).length;
   const badge = document.getElementById("campana-badge");
   if (n > 0) { badge.textContent = n > 99 ? "99+" : n; badge.classList.remove("hidden"); }
   else        { badge.classList.add("hidden"); }
 }
 
-function renderNotifs() {
-  const notifs = cargarNotifs();
-  const lista  = document.getElementById("notif-lista");
-  const vacia  = document.getElementById("notif-vacia");
+async function renderNotifs() {
+  const { data: notifs } = await sbGetNotificaciones();
+  const lista = document.getElementById("notif-lista");
+  const vacia = document.getElementById("notif-vacia");
 
-  actualizarBadge();
+  await actualizarBadge();
   lista.innerHTML = "";
 
-  if (notifs.length === 0) { vacia.classList.remove("hidden"); return; }
+  if (!notifs || notifs.length === 0) { vacia.classList.remove("hidden"); return; }
   vacia.classList.add("hidden");
 
-  [...notifs].reverse().forEach(n => {
+  notifs.forEach(n => {
     const div = document.createElement("div");
     div.className = "notif-item" + (n.leida ? "" : " no-leida");
     div.innerHTML = `
@@ -454,29 +354,24 @@ function renderNotifs() {
       </div>
       <button class="notif-btn-leer" data-id="${n.id}" aria-label="Marcar como leída" title="Marcar como leída">✓</button>
     `;
-    div.querySelector(".notif-btn-leer").addEventListener("click", e => {
+    div.querySelector(".notif-btn-leer").addEventListener("click", async e => {
       e.stopPropagation();
-      const all = cargarNotifs();
-      const idx = all.findIndex(x => x.id === n.id);
-      if (idx >= 0) { all[idx].leida = true; guardarNotifs(all); }
+      await sbMarcarNotifLeida(n.id);
       renderNotifs();
     });
     lista.appendChild(div);
   });
 }
 
-// Abrir / cerrar panel
 document.getElementById("btn-campana").addEventListener("click", e => {
   e.stopPropagation();
   const panel    = document.getElementById("panel-notif");
   const backdrop = document.getElementById("notif-backdrop");
   if (!panel.classList.contains("hidden")) {
-    panel.classList.add("hidden");
-    backdrop.classList.add("hidden");
+    panel.classList.add("hidden"); backdrop.classList.add("hidden");
   } else {
     renderNotifs();
-    panel.classList.remove("hidden");
-    backdrop.classList.remove("hidden");
+    panel.classList.remove("hidden"); backdrop.classList.remove("hidden");
   }
 });
 
@@ -488,20 +383,16 @@ function cerrarPanelNotif() {
 document.getElementById("btn-cerrar-notif").addEventListener("click", cerrarPanelNotif);
 document.getElementById("notif-backdrop").addEventListener("click", cerrarPanelNotif);
 
-document.getElementById("btn-marcar-todas").addEventListener("click", () => {
-  guardarNotifs(cargarNotifs().map(n => ({ ...n, leida: true })));
+document.getElementById("btn-marcar-todas").addEventListener("click", async () => {
+  await sbMarcarTodasLeidas();
   renderNotifs();
 });
 
-// Actualizar badge cada 2s (detecta mensajes enviados desde tareas.html)
-setInterval(actualizarBadge, 2000);
+// Polling cada 10s para nuevas notificaciones
+setInterval(actualizarBadge, 10000);
 
-// Detectar cambios de localStorage en la misma pestaña (entre páginas)
-window.addEventListener("storage", e => {
-  if (e.key === NOTIF_KEY) {
-    actualizarBadge();
-    if (!document.getElementById("panel-notif").classList.contains("hidden")) renderNotifs();
-  }
-});
-
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+cargarTareas();
 actualizarBadge();

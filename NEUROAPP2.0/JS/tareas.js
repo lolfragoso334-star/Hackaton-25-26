@@ -1,65 +1,8 @@
 /* ══════════════════════════════════════════════════════════════
-   DATOS — se leen del localStorage (guardado por el panel admin)
-   Si no hay nada guardado todavía, se usa el mock de ejemplo.
-   TODO: sustituir por fetch GET /api/tareas cuando haya BD real.
+   tareas.js — Vista de tareas NeuroVida + Supabase
 ══════════════════════════════════════════════════════════════ */
-const STORAGE_KEY = "neurovida_tareas";
 
-const MOCK_FALLBACK = [
-  {
-    id: "1",
-    titulo: "Montar servidor",
-    descripcion: "Instalar y configurar el servidor principal",
-    estado: "en_progreso",
-    pasos: [
-      { id: "p1", orden: 1, instruccion_texto: "Abre la caja del servidor con cuidado",   imagen_url: null, es_critico: true,  estado: "completado" },
-      { id: "p2", orden: 2, instruccion_texto: "Conecta los cables de alimentación",       imagen_url: null, es_critico: true,  estado: "en_progreso" },
-      { id: "p3", orden: 3, instruccion_texto: "Enciende el servidor con el botón verde",  imagen_url: null, es_critico: false, estado: "pendiente" },
-      { id: "p4", orden: 4, instruccion_texto: "Espera que aparezca la luz azul",          imagen_url: null, es_critico: false, estado: "pendiente" },
-    ],
-  },
-  {
-    id: "2",
-    titulo: "Organizar almacén",
-    descripcion: "Clasificar y ordenar los materiales del almacén",
-    estado: "pendiente",
-    pasos: [
-      { id: "p5", orden: 1, instruccion_texto: "Coge la lista de materiales de la mesa",     imagen_url: null, es_critico: false, estado: "pendiente" },
-      { id: "p6", orden: 2, instruccion_texto: "Agrupa las cajas por color",                 imagen_url: null, es_critico: false, estado: "pendiente" },
-      { id: "p7", orden: 3, instruccion_texto: "Coloca las cajas en la estantería correcta", imagen_url: null, es_critico: true,  estado: "pendiente" },
-    ],
-  },
-  {
-    id: "3",
-    titulo: "Revisar inventario",
-    descripcion: "Contar y anotar el stock disponible",
-    estado: "completado",
-    pasos: [
-      { id: "p8", orden: 1, instruccion_texto: "Abre la hoja de inventario", imagen_url: null, es_critico: false, estado: "completado" },
-      { id: "p9", orden: 2, instruccion_texto: "Cuenta cada producto",       imagen_url: null, es_critico: false, estado: "completado" },
-    ],
-  },
-];
-
-function cargarTareasDesdeStorage() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const datos = JSON.parse(raw);
-      if (Array.isArray(datos) && datos.length > 0) return JSON.parse(JSON.stringify(datos));
-    } catch(e) {}
-  }
-  return JSON.parse(JSON.stringify(MOCK_FALLBACK));
-}
-
-function guardarEstadoEnStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tareas));
-}
-
-/* ══════════════════════════════════════════════════════════════
-   ESTADO DE LA APLICACIÓN
-══════════════════════════════════════════════════════════════ */
-let tareas       = cargarTareasDesdeStorage();
+let tareas       = [];
 let filtroActual = "todas";
 let tareaActiva  = null;
 let pasoActual   = 0;
@@ -99,7 +42,6 @@ function htmlBadge(estado) {
     completado:  { cls: "estado-completado",  label: "✓ Listo" },
     en_progreso: { cls: "estado-en_progreso", label: "▶ En curso" },
     pendiente:   { cls: "estado-pendiente",   label: "○ Pendiente" },
-    bloqueado:   { cls: "estado-bloqueado",   label: "✕ Bloqueado" },
   };
   const c = cfg[estado] || cfg.pendiente;
   return `<span class="estado-badge ${c.cls}">${c.label}</span>`;
@@ -109,28 +51,23 @@ function htmlBadge(estado) {
    RENDERIZADO — LISTA DE TAREAS
 ══════════════════════════════════════════════════════════════ */
 function renderLista() {
-  const lista     = document.getElementById("lista-tareas");
-  const vacia     = document.getElementById("lista-vacia");
+  const lista      = document.getElementById("lista-tareas");
+  const vacia      = document.getElementById("lista-vacia");
   const totalBadge = document.getElementById("total-completadas");
 
-  // Contador completadas
   totalBadge.textContent = tareas.filter(t => t.estado === "completado").length;
 
-  // Filtrar
   const filtradas = tareas.filter(t =>
     filtroActual === "todas" || t.estado === filtroActual
   );
 
   lista.innerHTML = "";
 
-  if (filtradas.length === 0) {
-    vacia.classList.remove("hidden");
-    return;
-  }
+  if (filtradas.length === 0) { vacia.classList.remove("hidden"); return; }
   vacia.classList.add("hidden");
 
   filtradas.forEach(tarea => {
-    const { total, hechos, pct } = calcProgreso(tarea.pasos);
+    const { total, hechos, pct } = calcProgreso(tarea.pasos || []);
 
     const btn = document.createElement("button");
     btn.className = "tarjeta-tarea";
@@ -142,7 +79,7 @@ function renderLista() {
           <h3 class="tarjeta-titulo">${tarea.titulo}</h3>
           ${htmlBadge(tarea.estado)}
         </div>
-        <p class="tarjeta-desc">${tarea.descripcion}</p>
+        <p class="tarjeta-desc">${tarea.descripcion || ""}</p>
         <div class="barra-progreso-wrap">
           <div class="barra-meta">
             <span class="barra-hechos-label">${hechos} de ${total} pasos</span>
@@ -166,14 +103,12 @@ function abrirDetalle(tareaId) {
   tareaActiva = tareas.find(t => t.id === tareaId);
   if (!tareaActiva) return;
 
-  // Determinar el primer paso no completado
-  const primerPendiente = tareaActiva.pasos.findIndex(p => p.estado !== "completado");
+  const primerPendiente = (tareaActiva.pasos || []).findIndex(p => p.estado !== "completado");
   pasoActual = primerPendiente >= 0 ? primerPendiente : 0;
 
   document.getElementById("vista-lista").classList.add("hidden");
   document.getElementById("vista-detalle").classList.remove("hidden");
   window.scrollTo(0, 0);
-
   renderDetalle();
 }
 
@@ -182,18 +117,15 @@ function abrirDetalle(tareaId) {
 ══════════════════════════════════════════════════════════════ */
 function renderDetalle() {
   if (!tareaActiva) return;
-
-  const pasos = tareaActiva.pasos;
+  const pasos = tareaActiva.pasos || [];
   const paso  = pasos[pasoActual];
   const { total, hechos, pct } = calcProgreso(pasos);
 
-  // Título y barra
   document.getElementById("detalle-titulo").textContent = tareaActiva.titulo;
   document.getElementById("barra-hechos").textContent   = `${hechos} de ${total} pasos`;
   document.getElementById("barra-pct").textContent      = `${pct}%`;
   document.getElementById("barra-fill").style.width     = `${pct}%`;
 
-  // Indicador de bolitas
   const indicador = document.getElementById("indicador-pasos");
   indicador.innerHTML = "";
   pasos.forEach((p, i) => {
@@ -208,20 +140,15 @@ function renderDetalle() {
     indicador.appendChild(b);
   });
 
-  // Número de paso
   const circulo = document.getElementById("paso-num-circulo");
   circulo.textContent = paso.estado === "completado" ? "✓" : paso.orden;
   circulo.className   = "paso-num-circulo" + (paso.estado === "completado" ? " completado" : "");
 
-  // Meta del paso
   document.getElementById("paso-de").textContent = `Paso ${paso.orden} de ${total}`;
-
-  const criticoBadge = document.getElementById("paso-critico");
   paso.es_critico
-    ? criticoBadge.classList.remove("hidden")
-    : criticoBadge.classList.add("hidden");
+    ? document.getElementById("paso-critico").classList.remove("hidden")
+    : document.getElementById("paso-critico").classList.add("hidden");
 
-  // Pictograma
   const pictoArea = document.getElementById("picto-area");
   const pictoHint = document.querySelector(".picto-hint");
   if (paso.imagen_url) {
@@ -232,44 +159,45 @@ function renderDetalle() {
     pictoHint.style.display = "";
   }
 
-  // Instrucción
   document.getElementById("instruccion-texto").textContent = paso.instruccion_texto;
-
-  // Ocultar mensaje enviado al cambiar de paso
   document.getElementById("msg-enviado").classList.add("hidden");
 
-  // Botón completar
-  const btnCompletar = document.getElementById("btn-completar");
   paso.estado === "completado"
-    ? btnCompletar.classList.add("hidden")
-    : btnCompletar.classList.remove("hidden");
+    ? document.getElementById("btn-completar").classList.add("hidden")
+    : document.getElementById("btn-completar").classList.remove("hidden");
 
-  // Navegación
   document.getElementById("btn-anterior").disabled = pasoActual === 0;
   document.getElementById("btn-siguiente").disabled = pasoActual === pasos.length - 1;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ACTUALIZAR ESTADO DE UN PASO
-   TODO: sustituir por llamada PUT/PATCH a la API:
-   fetch(`/api/tareas/${tareaId}/pasos/${pasoId}`, { method:'PATCH', body: JSON.stringify({estado}) })
+   ACTUALIZAR ESTADO DE UN PASO — Supabase
 ══════════════════════════════════════════════════════════════ */
-function actualizarPaso(tareaId, pasoId, nuevoEstado) {
-  // Actualizar en el array global
+async function actualizarPaso(tareaId, pasoId, nuevoEstado) {
   const tarea = tareas.find(t => t.id === tareaId);
   if (!tarea) return;
 
   const pasoIdx = tarea.pasos.findIndex(p => p.id === pasoId);
   if (pasoIdx < 0) return;
-  tarea.pasos[pasoIdx].estado = nuevoEstado;
 
-  // Recalcular estado de la tarea
+  tarea.pasos[pasoIdx].estado = nuevoEstado;
   const todosCompletos = tarea.pasos.every(p => p.estado === "completado");
   tarea.estado = todosCompletos ? "completado" : "en_progreso";
+  tareaActiva  = tarea;
 
-  // Sincronizar tareaActiva y persistir
-  tareaActiva = tarea;
-  guardarEstadoEnStorage();
+  // Guardar en Supabase
+  await sbActualizarEstadoPaso(pasoId, nuevoEstado);
+  if (todosCompletos) {
+    await sbFetch(`tareas?id=eq.${tareaId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ estado: "completado" }),
+    });
+  } else {
+    await sbFetch(`tareas?id=eq.${tareaId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ estado: "en_progreso" }),
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -282,12 +210,10 @@ document.getElementById("btn-volver").addEventListener("click", () => {
   renderLista();
 });
 
-document.getElementById("btn-completar").addEventListener("click", () => {
+document.getElementById("btn-completar").addEventListener("click", async () => {
   if (!tareaActiva) return;
   const paso = tareaActiva.pasos[pasoActual];
-  actualizarPaso(tareaActiva.id, paso.id, "completado");
-
-  // Avanzar al siguiente paso si no es el último
+  await actualizarPaso(tareaActiva.id, paso.id, "completado");
   if (pasoActual < tareaActiva.pasos.length - 1) pasoActual++;
   renderDetalle();
 });
@@ -311,57 +237,43 @@ document.getElementById("btn-ayuda").addEventListener("click", () => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   EVENTOS — MODAL AYUDA
+   MODAL AYUDA — enviar notificación a Supabase
 ══════════════════════════════════════════════════════════════ */
 function cerrarModal() {
   document.getElementById("modal-ayuda").classList.add("hidden");
 }
 
 document.getElementById("modal-cancelar").addEventListener("click", cerrarModal);
-
 document.getElementById("modal-ayuda").addEventListener("click", e => {
   if (e.target === e.currentTarget) cerrarModal();
 });
-
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") cerrarModal();
 });
-
 document.getElementById("modal-textarea").addEventListener("input", function () {
   document.getElementById("modal-enviar").disabled = !this.value.trim();
 });
 
-document.getElementById("modal-enviar").addEventListener("click", () => {
+document.getElementById("modal-enviar").addEventListener("click", async () => {
   const mensaje = document.getElementById("modal-textarea").value.trim();
   if (!mensaje) return;
 
-  // Guardar notificación en localStorage → el admin la verá en su campana
   const paso = tareaActiva.pasos[pasoActual];
-  const notifs = (() => {
-    try { return JSON.parse(localStorage.getItem("neurovida_notif") || "[]"); }
-    catch(e) { return []; }
-  })();
-  notifs.push({
-    id:          Date.now() + "-" + Math.random().toString(36).slice(2),
+  await sbCrearNotificacion({
     tareaTitulo: tareaActiva.titulo,
     pasoOrden:   paso.orden,
     pasoTexto:   paso.instruccion_texto,
     mensaje,
-    hora:        new Date().toISOString(),
-    leida:       false,
   });
-  localStorage.setItem("neurovida_notif", JSON.stringify(notifs));
 
   cerrarModal();
-
-  // Mostrar confirmación en pantalla
   const msgEl = document.getElementById("msg-enviado");
   msgEl.classList.remove("hidden");
   setTimeout(() => msgEl.classList.add("hidden"), 3000);
 });
 
 /* ══════════════════════════════════════════════════════════════
-   EVENTOS — FILTROS
+   FILTROS
 ══════════════════════════════════════════════════════════════ */
 document.querySelectorAll(".filtro-btn").forEach(btn => {
   btn.addEventListener("click", function () {
@@ -373,6 +285,11 @@ document.querySelectorAll(".filtro-btn").forEach(btn => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   INIT
+   INIT — carga desde Supabase
 ══════════════════════════════════════════════════════════════ */
-renderLista();
+(async () => {
+  const { data, error } = await sbGetTareas();
+  if (error) { console.error("Error cargando tareas:", error); return; }
+  tareas = data;
+  renderLista();
+})();
