@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
    tareas.js — Vista de tareas NeuroVida + Supabase
+   Filtra las tareas por el usuario de la sesión activa.
 ══════════════════════════════════════════════════════════════ */
 
 let tareas       = [];
@@ -185,19 +186,11 @@ async function actualizarPaso(tareaId, pasoId, nuevoEstado) {
   tarea.estado = todosCompletos ? "completado" : "en_progreso";
   tareaActiva  = tarea;
 
-  // Guardar en Supabase
   await sbActualizarEstadoPaso(pasoId, nuevoEstado);
-  if (todosCompletos) {
-    await sbFetch(`tareas?id=eq.${tareaId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ estado: "completado" }),
-    });
-  } else {
-    await sbFetch(`tareas?id=eq.${tareaId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ estado: "en_progreso" }),
-    });
-  }
+  await sbFetch(`tareas?id=eq.${tareaId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ estado: todosCompletos ? "completado" : "en_progreso" }),
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -237,7 +230,7 @@ document.getElementById("btn-ayuda").addEventListener("click", () => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   MODAL AYUDA — enviar notificación a Supabase
+   MODAL AYUDA
 ══════════════════════════════════════════════════════════════ */
 function cerrarModal() {
   document.getElementById("modal-ayuda").classList.add("hidden");
@@ -285,10 +278,11 @@ document.querySelectorAll(".filtro-btn").forEach(btn => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   INIT — carga desde Supabase
+   INIT — carga SOLO las tareas del usuario en sesión
 ══════════════════════════════════════════════════════════════ */
 (async () => {
-  const { data, error } = await sbGetTareas();
+  // _session viene de requireAuth("trabajador") en el HTML
+  const { data, error } = await sbGetTareas(_session.id);
   if (error) { console.error("Error cargando tareas:", error); return; }
   tareas = data;
   renderLista();

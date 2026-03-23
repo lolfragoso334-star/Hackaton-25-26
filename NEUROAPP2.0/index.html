@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NeuroVida – Tu espacio seguro</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="stylesheet" href="CSS/neurovida.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="CSS/neurovida.css" />
+  <link rel="stylesheet" href="CSS/chat.css" />
+  <script src="JS/chat.js"></script>
+  <link rel="stylesheet" href="CSS/neurovida.css" />
+  <link rel="stylesheet" href="CSS/chat.css" />
 </head>
+
 <body>
 
   <a class="skip-link" href="#main-content">Ir al contenido principal</a>
 
   <!-- ════════════════════════ HEADER ════════════════════════ -->
   <header role="banner">
+
     <div class="header-title">
       <div class="logo-icon" aria-hidden="true">🧠</div>
       <h1>Neuro<span>Vida</span></h1>
@@ -20,7 +27,12 @@
 
     <div class="header-actions">
       <button class="icon-btn" onclick="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
       </button>
       <button class="icon-btn" onclick="openModal('configuracion')" aria-label="Configuración">
         ⚙️
@@ -105,7 +117,7 @@
       <div class="footer-col">
         <h4>🧠 NeuroVida</h4>
         <p>Plataforma de acompañamiento para personas con diversidad neurológica.</p>
-        <br/>
+        <br />
         <p>📍 Calle Bienestar 14, Madrid, España</p>
         <p>📞 +34 900 123 456</p>
       </div>
@@ -134,7 +146,7 @@
   <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal">
       <h3 id="modal-title"></h3>
-      <p  id="modal-body"></p>
+      <p id="modal-body"></p>
       <button class="modal-close" onclick="closeModal()">✔ Entendido</button>
     </div>
   </div>
@@ -149,5 +161,10 @@
     });
   </script>
   <script src="JS/neurovida.js"></script>
+  <!-- FINAL DEL BODY -->
+  <script src="JS/neurovida.js"></script>
+  <script src="JS/chat.js"></script>
 </body>
+</body>
+
 </html>

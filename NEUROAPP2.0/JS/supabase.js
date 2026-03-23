@@ -69,12 +69,33 @@ async function sbLogin(usuario, password) {
 
 /* ══════════════════════════════════════════════════════════════════════
    TAREAS + PASOS
+   
+   - sbGetTareas(usuarioId?)  →  si se pasa usuarioId, filtra por ese usuario
+                                 si no se pasa (admin), devuelve todas
+   - sbCrearTarea(tarea)      →  ahora acepta tarea.usuarioId
+   - sbActualizarTarea(id, tarea) → actualiza también usuario_id
 ════════════════════════════════════════════════════════════════════════ */
-async function sbGetTareas() {
-  const { data, error } = await sbFetch("tareas?select=*,pasos(*)");
+
+// Obtiene perfiles para el selector de asignación (solo admin)
+async function sbGetPerfilesTrabajadores() {
+  const { data, error } = await sbFetch("perfiles?rol=eq.trabajador&select=id,nombre_completo,usuario&order=nombre_completo.asc");
   if (error) return { data: [], error };
+  return { data: data || [], error: null };
+}
+
+async function sbGetTareas(usuarioId = null) {
+  // Si se pasa usuarioId → solo sus tareas (vista trabajador)
+  // Si no → todas las tareas (vista admin)
+  const filtro = usuarioId
+    ? `tareas?usuario_id=eq.${usuarioId}&select=*,pasos(*),perfiles(nombre_completo)`
+    : `tareas?select=*,pasos(*),perfiles(nombre_completo)`;
+
+  const { data, error } = await sbFetch(filtro);
+  if (error) return { data: [], error };
+
   const normalizado = (data || []).map(t => ({
     ...t,
+    usuarioNombre: t.perfiles?.nombre_completo || null,
     pasos: (t.pasos || []).sort((a, b) => a.orden - b.orden),
   }));
   return { data: normalizado, error: null };
@@ -87,6 +108,7 @@ async function sbCrearTarea(tarea) {
       titulo: tarea.titulo,
       descripcion: tarea.descripcion,
       estado: tarea.estado,
+      usuario_id: tarea.usuarioId || null,   // ← NUEVO
     }),
   });
   if (tareaError) return { data: null, error: tareaError };
@@ -117,6 +139,7 @@ async function sbActualizarTarea(id, tarea) {
       titulo: tarea.titulo,
       descripcion: tarea.descripcion,
       estado: tarea.estado,
+      usuario_id: tarea.usuarioId || null,   // ← NUEVO
     }),
   });
   if (tareaError) return { error: tareaError };

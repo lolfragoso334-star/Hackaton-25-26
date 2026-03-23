@@ -1,26 +1,28 @@
 /* ══════════════════════════════════════════════════════════════
    admin.js — Panel de administración NeuroVida + Supabase
+   Incluye selector de usuario al crear/editar tareas.
 ══════════════════════════════════════════════════════════════ */
 
-let tareas        = [];
+let tareas = [];
+let perfilesTrabajadores = [];   // ← lista de trabajadores para el selector
 let tareaEditando = null;
-let tareaABorrar  = null;
+let tareaABorrar = null;
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════════ */
 function calcProgreso(pasos) {
-  const total  = pasos.length;
+  const total = pasos.length;
   const hechos = pasos.filter(p => p.estado === "completado").length;
-  const pct    = total > 0 ? Math.round((hechos / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((hechos / total) * 100) : 0;
   return { total, hechos, pct };
 }
 
 function badgeHtml(estado) {
   const cfg = {
-    completado:  { cls: "estado-completado",  label: "✓ Listo" },
+    completado: { cls: "estado-completado", label: "✓ Listo" },
     en_progreso: { cls: "estado-en_progreso", label: "▶ En curso" },
-    pendiente:   { cls: "estado-pendiente",   label: "○ Pendiente" },
+    pendiente: { cls: "estado-pendiente", label: "○ Pendiente" },
   };
   const c = cfg[estado] || cfg.pendiente;
   return `<span class="estado-badge ${c.cls}">${c.label}</span>`;
@@ -29,20 +31,57 @@ function badgeHtml(estado) {
 function toast(msg, tipo = "") {
   const el = document.getElementById("toast");
   el.textContent = msg;
-  el.className   = "toast" + (tipo ? " " + tipo : "");
+  el.className = "toast" + (tipo ? " " + tipo : "");
   el.classList.remove("hidden");
   clearTimeout(toast._t);
   toast._t = setTimeout(() => el.classList.add("hidden"), 2800);
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CARGA INICIAL DESDE SUPABASE
+   INYECTAR CAMPO "ASIGNAR A" EN EL FORMULARIO
+   (se llama una sola vez al inicio, tras cargar perfiles)
+══════════════════════════════════════════════════════════════ */
+function inyectarSelectorUsuario() {
+  // Evitar duplicados si se llama dos veces
+  if (document.getElementById("campo-usuario-asignado")) return;
+
+  const estadoField = document.querySelector(".form-field:has(#campo-estado)");
+  if (!estadoField) return;
+
+  const div = document.createElement("div");
+  div.className = "form-field";
+  div.innerHTML = `
+    <label class="form-label" for="campo-usuario-asignado">
+      👤 Asignar a trabajador
+    </label>
+    <select id="campo-usuario-asignado" class="form-select">
+      <option value="">— Sin asignar —</option>
+      ${perfilesTrabajadores.map(p =>
+        `<option value="${p.id}">${p.nombre_completo} (${p.usuario})</option>`
+      ).join("")}
+    </select>
+    <span class="form-hint">Solo este trabajador verá la tarea en su lista.</span>
+  `;
+
+  // Insertar justo antes del campo Estado
+  estadoField.parentNode.insertBefore(div, estadoField);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CARGA INICIAL
 ══════════════════════════════════════════════════════════════ */
 async function cargarTareas() {
+  // Admin carga TODAS las tareas (sin filtro de usuario)
   const { data, error } = await sbGetTareas();
   if (error) { toast("⚠ Error al cargar tareas", "rojo"); return; }
   tareas = data;
   renderLista();
+}
+
+async function cargarPerfiles() {
+  const { data } = await sbGetPerfilesTrabajadores();
+  perfilesTrabajadores = data || [];
+  inyectarSelectorUsuario();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -63,6 +102,9 @@ function renderLista() {
 
   tareas.forEach(tarea => {
     const { total, pct } = calcProgreso(tarea.pasos || []);
+    const asignadoLabel = tarea.usuarioNombre
+      ? `<span class="admin-card-asignado">👤 ${tarea.usuarioNombre}</span>`
+      : `<span class="admin-card-asignado sin-asignar">○ Sin asignar</span>`;
 
     const card = document.createElement("div");
     card.className = "admin-tarea-card" + (tareaEditando === tarea.id ? " activa" : "");
@@ -86,6 +128,7 @@ function renderLista() {
         </div>
         <span class="admin-card-pasos">${total} paso${total !== 1 ? "s" : ""}</span>
       </div>
+      <div class="admin-card-asignado-wrap">${asignadoLabel}</div>
     `;
 
     card.addEventListener("click", e => {
@@ -124,9 +167,13 @@ function abrirFormEditar(id) {
 
   tareaEditando = id;
   document.getElementById("form-modo-label").textContent = "✏️ Editando tarea";
-  document.getElementById("campo-titulo").value  = tarea.titulo;
-  document.getElementById("campo-desc").value    = tarea.descripcion || "";
-  document.getElementById("campo-estado").value  = tarea.estado;
+  document.getElementById("campo-titulo").value = tarea.titulo;
+  document.getElementById("campo-desc").value = tarea.descripcion || "";
+  document.getElementById("campo-estado").value = tarea.estado;
+
+  // Rellenar selector de usuario asignado
+  const sel = document.getElementById("campo-usuario-asignado");
+  if (sel) sel.value = tarea.usuario_id || "";
 
   const listaPasos = document.getElementById("lista-pasos");
   listaPasos.innerHTML = "";
@@ -141,10 +188,12 @@ function abrirFormEditar(id) {
 
 function limpiarForm() {
   document.getElementById("campo-titulo").value = "";
-  document.getElementById("campo-desc").value   = "";
+  document.getElementById("campo-desc").value = "";
   document.getElementById("campo-estado").value = "pendiente";
   document.getElementById("lista-pasos").innerHTML = "";
   document.getElementById("campo-titulo").classList.remove("error");
+  const sel = document.getElementById("campo-usuario-asignado");
+  if (sel) sel.value = "";
   actualizarContadorPasos();
 }
 
@@ -160,9 +209,9 @@ function cerrarForm() {
 ══════════════════════════════════════════════════════════════ */
 function añadirFilaPaso(paso = null) {
   const listaPasos = document.getElementById("lista-pasos");
-  const idx    = listaPasos.children.length + 1;
-  const id     = paso ? paso.id    : "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
-  const texto  = paso ? paso.instruccion_texto : "";
+  const idx = listaPasos.children.length + 1;
+  const id = paso ? paso.id : "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  const texto = paso ? paso.instruccion_texto : "";
   const critico = paso ? paso.es_critico : false;
 
   const div = document.createElement("div");
@@ -213,7 +262,7 @@ function actualizarContadorPasos() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GUARDAR TAREA (crear o actualizar) — Supabase
+   GUARDAR TAREA — Supabase (incluye usuarioId)
 ══════════════════════════════════════════════════════════════ */
 document.getElementById("form-tarea").addEventListener("submit", async e => {
   e.preventDefault();
@@ -227,24 +276,26 @@ document.getElementById("form-tarea").addEventListener("submit", async e => {
   }
   document.getElementById("campo-titulo").classList.remove("error");
 
-  const desc   = document.getElementById("campo-desc").value.trim();
-  const estado = document.getElementById("campo-estado").value;
+  const desc    = document.getElementById("campo-desc").value.trim();
+  const estado  = document.getElementById("campo-estado").value;
+  const selUser = document.getElementById("campo-usuario-asignado");
+  const usuarioId = selUser ? (selUser.value || null) : null;
 
   const filasPasos = document.querySelectorAll(".paso-item");
   let hayErrorPaso = false;
   const pasos = Array.from(filasPasos).map((el, i) => {
-    const input   = el.querySelector(".paso-input");
-    const texto   = input.value.trim();
+    const input = el.querySelector(".paso-input");
+    const texto = input.value.trim();
     const critico = el.querySelector(".paso-critico-check").checked;
     if (!texto) { input.classList.add("error"); hayErrorPaso = true; }
-    else          input.classList.remove("error");
+    else input.classList.remove("error");
     return {
-      id:                el.dataset.pasoId,
-      orden:             i + 1,
+      id: el.dataset.pasoId,
+      orden: i + 1,
       instruccion_texto: texto,
-      imagen_url:        null,
-      es_critico:        critico,
-      estado:            "pendiente",
+      imagen_url: null,
+      es_critico: critico,
+      estado: "pendiente",
     };
   });
 
@@ -253,11 +304,11 @@ document.getElementById("form-tarea").addEventListener("submit", async e => {
   document.getElementById("btn-guardar").disabled = true;
 
   if (tareaEditando) {
-    const { error } = await sbActualizarTarea(tareaEditando, { titulo, descripcion: desc, estado, pasos });
+    const { error } = await sbActualizarTarea(tareaEditando, { titulo, descripcion: desc, estado, pasos, usuarioId });
     if (error) { toast("⚠ Error al guardar en Supabase", "rojo"); document.getElementById("btn-guardar").disabled = false; return; }
     toast("✅ Tarea actualizada", "verde");
   } else {
-    const { error } = await sbCrearTarea({ titulo, descripcion: desc, estado, pasos });
+    const { error } = await sbCrearTarea({ titulo, descripcion: desc, estado, pasos, usuarioId });
     if (error) { toast("⚠ Error al crear en Supabase", "rojo"); document.getElementById("btn-guardar").disabled = false; return; }
     toast("✅ Tarea creada", "verde");
   }
@@ -312,10 +363,10 @@ document.getElementById("btn-add-paso").addEventListener("click", () => añadirF
 document.getElementById("btn-cancelar-form").addEventListener("click", cerrarForm);
 
 /* ══════════════════════════════════════════════════════════════
-   NOTIFICACIONES — Supabase
+   NOTIFICACIONES
 ══════════════════════════════════════════════════════════════ */
 function horaFormateada(iso) {
-  const d   = new Date(iso);
+  const d = new Date(iso);
   const hoy = new Date();
   const hora = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   if (d.toDateString() === hoy.toDateString()) return `Hoy · ${hora}`;
@@ -327,7 +378,7 @@ async function actualizarBadge() {
   const n = (data || []).filter(n => !n.leida).length;
   const badge = document.getElementById("campana-badge");
   if (n > 0) { badge.textContent = n > 99 ? "99+" : n; badge.classList.remove("hidden"); }
-  else        { badge.classList.add("hidden"); }
+  else { badge.classList.add("hidden"); }
 }
 
 async function renderNotifs() {
@@ -365,7 +416,7 @@ async function renderNotifs() {
 
 document.getElementById("btn-campana").addEventListener("click", e => {
   e.stopPropagation();
-  const panel    = document.getElementById("panel-notif");
+  const panel = document.getElementById("panel-notif");
   const backdrop = document.getElementById("notif-backdrop");
   if (!panel.classList.contains("hidden")) {
     panel.classList.add("hidden"); backdrop.classList.add("hidden");
@@ -382,17 +433,18 @@ function cerrarPanelNotif() {
 
 document.getElementById("btn-cerrar-notif").addEventListener("click", cerrarPanelNotif);
 document.getElementById("notif-backdrop").addEventListener("click", cerrarPanelNotif);
-
 document.getElementById("btn-marcar-todas").addEventListener("click", async () => {
   await sbMarcarTodasLeidas();
   renderNotifs();
 });
 
-// Polling cada 10s para nuevas notificaciones
 setInterval(actualizarBadge, 10000);
 
 /* ══════════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════════ */
-cargarTareas();
-actualizarBadge();
+(async () => {
+  await cargarPerfiles();   // primero los perfiles (inyecta el selector)
+  await cargarTareas();     // luego las tareas
+  actualizarBadge();
+})();

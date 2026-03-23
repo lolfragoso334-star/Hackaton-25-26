@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mis Tareas – NeuroVida</title>
-  <link rel="stylesheet" href="../CSS/tareas.css"/>
+  <link rel="stylesheet" href="../CSS/tareas.css" />
+  <link rel="stylesheet" href="../CSS/chat.css" />
 </head>
+
 <body>
 
   <!-- ══════════════════════ VISTA: LISTA DE TAREAS ══════════════════════ -->
@@ -48,8 +51,9 @@
       <div id="lista-vacia" class="lista-vacia hidden">
         <div class="picto-sm">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="45" fill="#009E73"/>
-            <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="50" cy="50" r="45" fill="#009E73" />
+            <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
         </div>
         <p class="vacia-titulo">¡Todo listo!</p>
@@ -122,8 +126,9 @@
           <button id="btn-completar" class="btn-completar">
             <div class="picto-xs">
               <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="45" fill="#009E73"/>
-                <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="50" cy="50" r="45" fill="#009E73" />
+                <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
             He terminado este paso
@@ -131,8 +136,9 @@
           <button id="btn-ayuda" class="btn-ayuda">
             <div class="picto-xs">
               <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="45" fill="#0072B2"/>
-                <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white" font-family="Georgia">?</text>
+                <circle cx="50" cy="50" r="45" fill="#0072B2" />
+                <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white"
+                  font-family="Georgia">?</text>
               </svg>
             </div>
             Necesito ayuda
@@ -155,8 +161,9 @@
       <div class="modal-header">
         <div class="picto-sm">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="45" fill="#0072B2"/>
-            <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white" font-family="Georgia">?</text>
+            <circle cx="50" cy="50" r="45" fill="#0072B2" />
+            <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white"
+              font-family="Georgia">?</text>
           </svg>
         </div>
         <div>
@@ -165,12 +172,8 @@
         </div>
       </div>
       <p class="modal-label">¿Qué necesitas? Escríbelo aquí:</p>
-      <textarea
-        id="modal-textarea"
-        class="modal-textarea"
-        rows="4"
-        placeholder="Ejemplo: No encuentro la caja del servidor..."
-      ></textarea>
+      <textarea id="modal-textarea" class="modal-textarea" rows="4"
+        placeholder="Ejemplo: No encuentro la caja del servidor..."></textarea>
       <div class="modal-footer">
         <button id="modal-cancelar" class="modal-btn-cancelar">Cancelar</button>
         <button id="modal-enviar" class="modal-btn-enviar" disabled>📤 Enviar ayuda</button>
@@ -182,5 +185,7 @@
   <script src="../JS/auth.js"></script>
   <script>const _session = requireAuth("trabajador");</script>
   <script src="../JS/tareas.js"></script>
+  <script src="../JS/chat.js"></script>
 </body>
+
 </html>
