@@ -1,0 +1,423 @@
+@import url('https://fonts.cdnfonts.com/css/opendyslexic');
+
+/* ── Variables – paleta Wong (segura para daltonismo) ───────── */
+:root {
+  --bg:          #F5F0E8;
+  --surface:     #FFFDF7;
+  --text:        #1A1208;
+  --subtle:      #5C5040;
+
+  --blue:        #0072B2;   /* principal */
+  --orange:      #E69F00;   /* seguimiento */
+  --green:       #009E73;   /* diario */
+  --red:         #D55E00;   /* ayuda / alerta */
+  --sky:         #56B4E9;   /* acento claro */
+  --yellow:      #F0E442;
+
+  --radius:      12px;
+  --btn-size:    110px;
+  --font:        'OpenDyslexic', 'Comic Sans MS', cursive;
+  --font-ui:     'OpenDyslexic', cursive;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  letter-spacing: 0.03em;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────── */
+header {
+  background: var(--blue);
+  color: #fff;
+  padding: 18px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 52px; height: 52px;
+  background: var(--yellow);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+header h1 span { color: var(--yellow); }
+
+/* ── HEADER ACTIONS ──────────────────────────────────────────── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  min-width: 52px;
+  border-radius: var(--radius);
+  border: 3px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition: transform .15s, background .15s, border-color .15s;
+  padding: 0 14px;
+}
+.icon-btn:hover, .icon-btn:focus {
+  background: rgba(255,255,255,0.3);
+  border-color: #fff;
+  transform: scale(1.06);
+  outline: 4px solid var(--yellow);
+  outline-offset: 3px;
+}
+
+.user-btn {
+  gap: 10px;
+  font-size: 1.4rem;
+}
+
+.user-greeting {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── MAIN ─────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  padding: 28px 24px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── SECCIÓN – Mensajes del día ───────────────────────────────── */
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  margin-bottom: 16px;
+  padding-left: 10px;
+  border-left: 6px solid var(--blue);
+  color: var(--text);
+}
+
+.messages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+  gap: 18px;
+  margin-bottom: 40px;
+}
+
+.msg-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  border-left: 8px solid;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  transition: transform .15s;
+  display: flex;
+  flex-direction: column;
+}
+.msg-card:hover { transform: translateY(-3px); }
+.msg-card.blue  { border-color: var(--blue);   }
+.msg-card.green { border-color: var(--green);  }
+.msg-card.orange{ border-color: var(--orange); }
+.msg-card.red   { border-color: var(--red);    }
+
+.msg-card .tag {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #fff;
+}
+.blue  .tag { background: var(--blue);   }
+.green .tag { background: var(--green);  }
+.orange .tag{ background: var(--orange); }
+.red   .tag { background: var(--red);    }
+
+.msg-card h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.msg-card p  { font-size: 0.9rem; color: var(--subtle); line-height: 1.7; }
+
+/* ── CALENDARIO ───────────────────────────────────────────────── */
+.calendar-wrapper {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  margin-bottom: 40px;
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.cal-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.cal-nav button {
+  width: 48px; height: 48px;
+  border-radius: var(--radius);
+  border: 3px solid var(--blue);
+  background: var(--surface);
+  color: var(--blue);
+  font-size: 1.3rem;
+  cursor: pointer;
+  font-weight: 900;
+  transition: background .15s, color .15s;
+}
+.cal-nav button:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-day-name {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--subtle);
+  padding: 6px 0;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid transparent;
+  transition: background .15s, border-color .15s, transform .1s;
+  position: relative;
+}
+.cal-day:hover {
+  border-color: var(--blue);
+  transform: scale(1.08);
+}
+.cal-day.today {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+.cal-day.has-event::after {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--orange);
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.cal-day.has-event.today::after { background: var(--yellow); }
+.cal-day.empty { background: transparent; cursor: default; }
+.cal-day.other-month { color: var(--subtle); opacity: 0.5; }
+
+/* ── ACCIONES RÁPIDAS ─────────────────────────────────────────── */
+.quick-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.big-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius);
+  border: none;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+  gap: 10px;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  text-align: center;
+  text-decoration: none;
+}
+.big-btn:hover, .big-btn:focus {
+  transform: scale(1.07);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+  outline: 4px solid var(--text);
+  outline-offset: 3px;
+}
+.big-btn .icon {
+  font-size: 2.6rem;
+  line-height: 1;
+  display: block;
+}
+.big-btn .btn-label {
+  line-height: 1.2;
+  display: block;
+}
+.big-btn.btn-seguimiento { background: var(--orange); }
+.big-btn.btn-diario      { background: var(--green);  }
+.big-btn.btn-ayuda       { background: var(--red);    }
+.big-btn.btn-nuevo       { background: var(--blue);   }
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+footer {
+  background: #1A1208;
+  color: #E8DFD0;
+  padding: 28px 32px;
+  font-size: 0.85rem;
+  line-height: 1.9;
+}
+
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 28px;
+}
+
+.footer-col h4 {
+  color: var(--yellow);
+  font-size: 1rem;
+  margin-bottom: 10px;
+  border-bottom: 2px solid var(--orange);
+  padding-bottom: 6px;
+  display: inline-block;
+}
+
+.footer-col a {
+  display: block;
+  color: #C8BFB0;
+  text-decoration: none;
+  padding: 2px 0;
+}
+.footer-col a:hover { color: var(--yellow); }
+
+.footer-bottom {
+  max-width: 1100px;
+  margin: 20px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid #3A3028;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: #8A8070;
+}
+
+/* ── MODAL ────────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.modal h3 { font-size: 1.3rem; margin-bottom: 16px; }
+.modal p  { font-size: 0.95rem; color: var(--subtle); line-height: 1.8; }
+.modal-close {
+  margin-top: 22px;
+  padding: 14px 28px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+.modal-close:hover { background: #005A8E; }
+
+/* ── Accesibilidad: skip link ─────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 12px;
+  background: var(--yellow);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-weight: 900;
+  z-index: 999;
+  transition: top .2s;
+}
+.skip-link:focus { top: 12px; }
+
+@media (max-width: 600px) {
+  :root { --btn-size: 88px; }
+  header { justify-content: center; text-align: center; }
+  .header-title { flex-direction: column; }
+  .big-btn { width: 120px; height: 120px; }
+}
