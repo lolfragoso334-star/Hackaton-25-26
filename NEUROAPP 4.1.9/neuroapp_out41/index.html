@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroVida – Mis Tareas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />  <style>
+    /* ══════════════════════════════════════════════════════════
+       TRABAJADOR — el header de tareas.html queda eliminado,
+       los filtros van directamente bajo el header principal
+    ══════════════════════════════════════════════════════════ */
+    .filtros-bar {
+      background: var(--bg);
+      padding: 14px 24px 10px;
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .filtros-bar .filtros {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Footer siempre fijo al fondo ── */
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    #vista-trabajador {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    #vista-lista {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Fondo gris que rellena el espacio sobrante sin molestar a las tareas */
+    #vista-lista .lista-main {
+      flex: 1;
+      background: #f0f2f5;
+    }
+
+    /* ── Filtros azules ── */
+    .filtros-bar .filtro-btn {
+      background: rgba(0, 114, 178, 0.10);
+      border: 2px solid var(--blue);
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .filtros-bar .filtro-btn.active,
+    .filtros-bar .filtro-btn:hover {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+  </style>
+  <link rel="stylesheet" href="CSS/neurovida.css" />
+  <link rel="stylesheet" href="CSS/header.css" />
+  <link rel="stylesheet" href="CSS/tareas.css" />
+  <link rel="stylesheet" href="CSS/ajustes.css" />
+  <link rel="stylesheet" href="CSS/chat.css" />
+</head>
+
+<body>
+
+  <a class="skip-link" href="#main-content">Ir al contenido principal</a>
+
+  <!-- ════════════════════════════════════════════════════════════
+       HEADER UNIFICADO
+  ════════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════ HEADER UNIFICADO ════════════════════════ -->
+  <header class="header-main" role="banner">
+    <a class="header-logo" href="index.html" aria-label="NeuroVida – Inicio">
+      <div class="header-logo-icon" aria-hidden="true">🧠</div>
+      <h1>Neuro<span>Vida</span></h1>
+    </a>
+
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a class="nav-btn btn-tareas active" href="index.html" aria-current="page">
+        <span class="nav-icon">✅</span> Tareas
+      </a>
+      <a class="nav-btn btn-agenda" href="HTML/agenda.html">
+        <span class="nav-icon">📅</span> Agenda
+      </a>
+      <a class="nav-btn btn-mensajes" href="HTML/mensajes.html">
+        <span class="nav-icon">💬</span> Mensajes
+      </a>
+    </nav>
+
+    <div class="header-acciones">
+      <!-- Badge completadas (solo trabajador, se muestra vía JS) -->
+      <div class="header-badge-completadas" id="badge-completadas-wrap" style="display:none" aria-live="polite">
+        <span class="badge-num" id="total-completadas">0</span>
+        <span class="badge-label">completadas</span>
+      </div>
+      <button class="header-icon-btn" onclick="abrirAjustes()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+      <button class="header-icon-btn header-user-btn" onclick="openModal('usuario')" aria-label="Perfil de usuario">
+        👤 <span class="user-greeting">…</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════
+       VISTA TRABAJADOR — Lista de tareas
+  ════════════════════════════════════════════════════════════ -->
+  <div id="vista-trabajador" style="display:none">
+
+    <!-- ── VISTA: LISTA ── -->
+    <div id="vista-lista">
+
+      <!-- Filtros bajo el header -->
+      <div class="filtros-bar">
+        <div class="filtros" role="group" aria-label="Filtrar tareas">
+          <button class="filtro-btn active" data-filtro="todas">Todas</button>
+          <button class="filtro-btn" data-filtro="en_progreso">▶ En curso</button>
+          <button class="filtro-btn" data-filtro="pendiente">○ Pendientes</button>
+          <button class="filtro-btn" data-filtro="completado">✓ Listas</button>
+        </div>
+      </div>
+
+      <!-- Lista de tareas -->
+      <main class="lista-main" id="main-content">
+        <div id="lista-tareas" class="lista-tareas"></div>
+
+        <div id="lista-vacia" class="lista-vacia hidden">
+          <div class="picto-sm">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="45" fill="#009E73" />
+              <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <p class="vacia-titulo">¡Todo listo!</p>
+          <p class="vacia-sub">No hay tareas en esta categoría.</p>
+        </div>
+      </main>
+
+    </div>
+
+    <!-- ── VISTA: DETALLE DE PASOS ── -->
+    <div id="vista-detalle" class="hidden">
+
+      <header class="header-detalle">
+        <button id="btn-volver" class="btn-volver" aria-label="Volver a la lista de tareas">
+          ← <span>Volver</span>
+        </button>
+        <div class="detalle-header-info">
+          <h1 id="detalle-titulo" class="detalle-titulo"></h1>
+          <div class="barra-progreso-wrap">
+            <div class="barra-meta">
+              <span id="barra-hechos" class="barra-hechos-label"></span>
+              <span id="barra-pct" class="barra-pct-label"></span>
+            </div>
+            <div class="barra-track">
+              <div id="barra-fill" class="barra-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div id="indicador-pasos" class="indicador-pasos" role="list" aria-label="Pasos de la tarea"></div>
+
+      <main class="detalle-main">
+        <div class="paso-wrap">
+
+          <div class="paso-cabecera">
+            <div id="paso-num-circulo" class="paso-num-circulo"></div>
+            <div class="paso-meta">
+              <p id="paso-de" class="paso-de-label"></p>
+              <span id="paso-critico" class="paso-critico hidden">⚠ IMPORTANTE</span>
+            </div>
+          </div>
+
+          <div class="picto-card" id="picto-card">
+            <div id="picto-area" class="picto-area"></div>
+            <p class="picto-hint">Pictograma ARASAAC</p>
+          </div>
+
+          <div class="instruccion-card">
+            <p id="instruccion-texto" class="instruccion-texto"></p>
+          </div>
+
+          <div id="msg-enviado" class="msg-enviado hidden">
+            <span class="msg-icon">📬</span>
+            <p>¡Mensaje enviado! Tu tutor lo verá pronto.</p>
+          </div>
+
+          <div class="acciones-paso">
+            <button id="btn-completar" class="btn-completar">
+              <div class="picto-xs">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="50" cy="50" r="45" fill="#009E73" />
+                  <path d="M25 50 L42 67 L75 33" stroke="white" stroke-width="9" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
+              </div>
+              He terminado este paso
+            </button>
+            <button id="btn-ayuda" class="btn-ayuda">
+              <div class="picto-xs">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="50" cy="50" r="45" fill="#0072B2" />
+                  <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white"
+                    font-family="Georgia">?</text>
+                </svg>
+              </div>
+              Necesito ayuda
+            </button>
+          </div>
+
+          <div class="nav-pasos">
+            <button id="btn-anterior" class="btn-nav" disabled>← Paso anterior</button>
+            <button id="btn-siguiente" class="btn-nav">Paso siguiente →</button>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+  </div><!-- /vista-trabajador -->
+
+  <!-- ══════════════════════ MODAL AYUDA ══════════════════════ -->
+  <div id="modal-ayuda" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="picto-sm">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="45" fill="#0072B2" />
+            <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white"
+              font-family="Georgia">?</text>
+          </svg>
+        </div>
+        <div>
+          <h2 id="modal-titulo" class="modal-titulo">Necesito ayuda</h2>
+          <p id="modal-subtitulo" class="modal-subtitulo"></p>
+        </div>
+      </div>
+      <p class="modal-label">¿Qué necesitas? Escríbelo aquí:</p>
+      <textarea id="modal-textarea" class="modal-textarea" rows="4"
+        placeholder="Ejemplo: No encuentro la caja del servidor..."></textarea>
+      <div class="modal-footer">
+        <button id="modal-cancelar" class="modal-btn-cancelar">Cancelar</button>
+        <button id="modal-enviar" class="modal-btn-enviar" disabled>📤 Enviar ayuda</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ════════════════════════ SCRIPTS ════════════════════════ -->
+  <script src="JS/supabase.js"></script>
+  <script src="JS/auth.js"></script>
+  <script src="JS/ajustes.js"></script>
+  <script>
+    /* ── Auth — solo trabajadores. Admin y especialista son redirigidos por auth.js */
+    const _session = requireAuth();
+    // Si por algún motivo un admin llegase aquí, redirigir
+    if (_session.rol === "admin") { window.location.replace("HTML/admin.html"); throw new Error(); }
+    if (_session.rol === "especialista") { window.location.replace("HTML/especialista.html"); throw new Error(); }
+
+    /* ── Helpers nav ── */
+    function mostrarVistaTareas() {
+      /* no-op: ya estamos en tareas */
+    }
+
+
+
+    /* ── Init ── */
+    document.addEventListener("DOMContentLoaded", async () => {
+      const nombre = _session.nombre.split(" ")[0];
+      document.querySelector(".user-greeting").textContent = nombre;
+    // Icono según rol: 🛡️ admin, 👤 trabajador, ya manejado 🩺 especialista
+    if (_session && _session.rol === 'admin') {
+      const userBtn = document.querySelector('.header-user-btn');
+      if (userBtn) {
+        const greetingEl = userBtn.querySelector('.user-greeting, #admin-nombre-header, span');
+        userBtn.textContent = '';
+        userBtn.appendChild(document.createTextNode('🛡️ '));
+        if (greetingEl) userBtn.appendChild(greetingEl);
+      }
+    }
+
+      /* TRABAJADOR — mostrar badge y dejar que tareas.js cargue la lista */
+      document.getElementById("vista-trabajador").style.display = "block";
+      document.getElementById("badge-completadas-wrap").style.display = "block";
+    });
+
+
+  </script>
+
+  <!--
+    tareas.js asume que está en HTML/ y referencia ../JS/
+    Como ahora está en la raíz, ajustamos la ruta al incluirlo.
+    El script internamente usa document.getElementById que sí existe aquí.
+    Solo necesitamos redefinir _session antes de que tareas.js corra
+    (ya está definido arriba por requireAuth).
+  -->
+  <script src="JS/tareas.js"></script>
+  <script src="JS/neurovida.js"></script>
+</body>
+
+</html>

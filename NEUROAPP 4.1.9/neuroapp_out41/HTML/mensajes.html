@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mensajes – NeuroVida</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #f0f2f5;
+    }
+
+    /* ── Layout principal ── */
+    .msg-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 110px);
+    }
+
+    /* ── Panel izquierdo: lista de contactos ── */
+    .msg-sidebar {
+      width: 340px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 2px solid var(--border, #e5e0d8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 20px 20px 12px;
+      border-bottom: 2px solid var(--border, #e5e0d8);
+      background: var(--surface);
+    }
+
+    .sidebar-header h2 {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-search {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 50px;
+      border: 2px solid var(--border, #e5e0d8);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .sidebar-search:focus { border-color: var(--blue); }
+
+    .sidebar-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 20px 0;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border, #e5e0d8);
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 8px 0;
+      border: none;
+      background: transparent;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--subtle);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+
+    .sidebar-tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    .contactos-lista {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .contacto-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background .12s;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      position: relative;
+    }
+
+    .contacto-item:hover { background: var(--bg); }
+    .contacto-item.activo { background: #EAF4FB; }
+
+    .contacto-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .contacto-avatar.rol-trabajador   { background: var(--green); }
+    .contacto-avatar.rol-admin        { background: var(--blue); }
+    .contacto-avatar.rol-especialista { background: #8e44ad; }
+
+    .contacto-info { flex: 1; min-width: 0; }
+
+    .contacto-nombre {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .contacto-preview {
+      font-size: 0.78rem;
+      color: var(--subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .contacto-badge {
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      min-width: 20px; height: 20px;
+      border-radius: 99px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 5px;
+      flex-shrink: 0;
+    }
+
+    .contacto-hora {
+      font-size: 0.7rem;
+      color: var(--subtle);
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    .contacto-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .contacto-rol-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .tag-trabajador   { background: #E6F6F1; color: var(--green); }
+    .tag-admin        { background: #EAF4FB; color: var(--blue); }
+    .tag-especialista { background: #F0EEFF; color: #8e44ad; }
+
+    .lista-vacia-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--subtle);
+    }
+
+    .lista-vacia-msg .vacia-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .lista-vacia-msg p { font-size: 0.85rem; font-weight: 700; }
+
+    /* ── Panel derecho: conversación ── */
+    .msg-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #f0f2f5;
+    }
+
+    /* Estado vacío: ningún contacto seleccionado */
+    .chat-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--subtle);
+    }
+
+    .chat-placeholder-icon { font-size: 4rem; }
+    .chat-placeholder h3 { font-size: 1.3rem; font-weight: 900; }
+    .chat-placeholder p { font-size: 0.9rem; }
+
+    /* Header del chat abierto */
+    .chat-header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border, #e5e0d8);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .chat-header-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .chat-header-info { flex: 1; }
+    .chat-header-nombre { font-size: 1.05rem; font-weight: 900; }
+    .chat-header-rol { font-size: 0.78rem; color: var(--subtle); font-weight: 700; }
+
+    /* Mensajes */
+    .chat-mensajes {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg-bubble-wrap {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .msg-bubble-wrap.propio { flex-direction: row-reverse; }
+
+    .bubble-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .msg-bubble {
+      max-width: 68%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .msg-bubble-wrap.otro .msg-bubble {
+      background: var(--surface);
+      border: 2px solid var(--border, #e5e0d8);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .msg-bubble-wrap.propio .msg-bubble {
+      background: var(--blue);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble-hora {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.65);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .msg-bubble-wrap.otro .bubble-hora {
+      color: var(--subtle);
+      text-align: left;
+    }
+
+    .bubble-nombre {
+      font-size: 0.7rem;
+      font-weight: 900;
+      margin-bottom: 4px;
+      color: var(--blue);
+    }
+
+    .msg-bubble-wrap.propio .bubble-nombre { display: none; }
+
+    .msg-date-sep {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--subtle);
+      padding: 4px 12px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 99px;
+      align-self: center;
+      margin: 4px 0;
+    }
+
+    /* Input área */
+    .chat-input-area {
+      background: var(--surface);
+      border-top: 2px solid var(--border, #e5e0d8);
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .chat-textarea {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 24px;
+      border: 2px solid var(--border, #e5e0d8);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      resize: none;
+      min-height: 50px;
+      max-height: 140px;
+      outline: none;
+      transition: border-color .15s;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .chat-textarea:focus { border-color: var(--blue); }
+
+    .btn-enviar {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, transform .12s;
+    }
+
+    .btn-enviar:hover { background: #005A8E; transform: scale(1.08); }
+    .btn-enviar:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+    /* ── Nuevo mensaje (solo para admin/especialista, si no hay conversación) ── */
+    .nuevo-msg-banner {
+      background: var(--blue);
+      color: #fff;
+      padding: 10px 24px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── Panel nuevo mensaje (selector de destinatario) ── */
+    .nuevo-msg-panel {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      width: min(480px, 92vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      z-index: 500;
+    }
+
+    .nuevo-msg-panel h3 {
+      font-size: 1.1rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+    }
+
+    .nuevo-msg-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 499;
+    }
+
+    .form-label-nm {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+
+    .form-select-nm, .form-textarea-nm {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #e5e0d8);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      background: var(--bg);
+      color: var(--text);
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .form-select-nm:focus, .form-textarea-nm:focus { border-color: var(--blue); }
+
+    .form-textarea-nm { resize: vertical; min-height: 100px; }
+
+    .nuevo-msg-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .btn-cancelar-nm {
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #e5e0d8);
+      background: transparent;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--subtle);
+      cursor: pointer;
+    }
+
+    .btn-enviar-nm {
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-enviar-nm:hover { background: #005A8E; }
+    .btn-enviar-nm:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* ── Botón nuevo mensaje flotante ── */
+    .fab-nuevo {
+      position: absolute;
+      bottom: 20px; right: 20px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,114,178,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .12s;
+      z-index: 10;
+    }
+
+    .fab-nuevo:hover { background: #005A8E; transform: scale(1.08); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%);
+      background: #1A1208;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 99px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      z-index: 9999;
+      animation: fadeInUp .3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      text-align: center;
+      padding: 40px;
+      font-size: 0.9rem;
+      color: var(--subtle);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 680px) {
+      .msg-sidebar { width: 100%; position: absolute; z-index: 50; }
+      .msg-sidebar.hidden-mobile { display: none; }
+      html, body { overflow: auto; }
+      .msg-layout { height: auto; flex-direction: column; }
+    }
+
+    /* Clase utilitaria para ocultar elementos */
+    .hidden { display: none !important; }
+  </style>
+  <link rel="stylesheet" href="../CSS/neurovida.css" />
+  <link rel="stylesheet" href="../CSS/header.css" />
+  <link rel="stylesheet" href="../CSS/ajustes.css" />
+</head>
+
+<body>
+
+  <!-- ════════════════════════ HEADER UNIFICADO ════════════════════════ -->
+  <header class="header-main" role="banner">
+    <a class="header-logo" href="../index.html" aria-label="NeuroVida – Inicio">
+      <div class="header-logo-icon" aria-hidden="true">🧠</div>
+      <h1>Neuro<span>Vida</span></h1>
+    </a>
+
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a class="nav-btn btn-tareas" href="../index.html">
+        <span class="nav-icon">✅</span> Tareas
+      </a>
+      <a class="nav-btn btn-agenda" href="agenda.html">
+        <span class="nav-icon">📅</span> Agenda
+      </a>
+      <a class="nav-btn btn-mensajes active" href="mensajes.html" aria-current="page">
+        <span class="nav-icon">💬</span> Mensajes
+      </a>
+    </nav>
+
+    <div class="header-acciones">
+      <button class="header-icon-btn" onclick="abrirAjustes()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+      <button class="header-icon-btn header-user-btn" onclick="openModal && openModal('usuario')" aria-label="Perfil">
+        👤 <span class="user-greeting">…</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════ LAYOUT MENSAJES ════════════════════ -->
+  <div class="msg-layout">
+
+    <!-- ── Sidebar: lista de conversaciones / contactos ── -->
+    <aside class="msg-sidebar" id="msg-sidebar">
+      <div class="sidebar-header">
+        <h2>💬 Mensajes</h2>
+        <input type="search" class="sidebar-search" id="buscar-contacto" placeholder="Buscar persona…" aria-label="Buscar contacto" />
+      </div>
+
+      <!-- Tabs (solo admin/especialista ven "Trabajadores") -->
+      <div class="sidebar-tabs" id="sidebar-tabs-wrap">
+        <button class="sidebar-tab active" data-tab="conversaciones" id="tab-conv">Conversaciones</button>
+        <button class="sidebar-tab" data-tab="contactos" id="tab-todos">Contactos</button>
+      </div>
+
+      <!-- Lista dinámica -->
+      <div class="contactos-lista" id="contactos-lista">
+        <div class="spinner">Cargando…</div>
+      </div>
+
+      <!-- FAB nuevo mensaje (solo admin/especialista) -->
+      <button class="fab-nuevo" id="btn-nuevo-msg" title="Nuevo mensaje" style="display:none" aria-label="Nuevo mensaje">✏️</button>
+    </aside>
+
+    <!-- ── Panel chat ── -->
+    <div class="msg-chat" id="msg-chat">
+
+      <!-- Estado vacío -->
+      <div class="chat-placeholder" id="chat-placeholder">
+        <div class="chat-placeholder-icon">💬</div>
+        <h3>Selecciona una conversación</h3>
+        <p id="placeholder-sub">Elige un contacto de la lista para empezar</p>
+      </div>
+
+      <!-- Chat activo (oculto hasta que se selecciona contacto) -->
+      <div id="chat-activo" style="display:none; flex:1; flex-direction:column; overflow:hidden; display:none;">
+
+        <!-- Header del chat -->
+        <div class="chat-header">
+          <div class="chat-header-avatar" id="chat-avatar"></div>
+          <div class="chat-header-info">
+            <div class="chat-header-nombre" id="chat-nombre">—</div>
+            <div class="chat-header-rol" id="chat-rol-label">—</div>
+          </div>
+        </div>
+
+        <!-- Mensajes -->
+        <div class="chat-mensajes" id="chat-mensajes"></div>
+
+        <!-- Input -->
+        <div class="chat-input-area" id="chat-input-area">
+          <textarea
+            class="chat-textarea"
+            id="chat-textarea"
+            placeholder="Escribe un mensaje…"
+            rows="1"
+            aria-label="Escribe tu mensaje"
+          ></textarea>
+          <button class="btn-enviar" id="btn-enviar-msg" aria-label="Enviar" disabled>➤</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════ PANEL NUEVO MENSAJE ════════════════════ -->
+  <div class="nuevo-msg-overlay hidden" id="overlay-nuevo"></div>
+  <div class="nuevo-msg-panel hidden" id="panel-nuevo-msg" role="dialog" aria-modal="true" aria-labelledby="nuevo-msg-titulo">
+    <h3 id="nuevo-msg-titulo">✉️ Nuevo mensaje</h3>
+
+    <label class="form-label-nm" for="select-destinatario">Para:</label>
+    <select class="form-select-nm" id="select-destinatario">
+      <option value="">— Selecciona un trabajador —</option>
+    </select>
+
+    <label class="form-label-nm" for="textarea-nuevo-msg">Mensaje:</label>
+    <textarea class="form-textarea-nm" id="textarea-nuevo-msg" placeholder="Escribe tu mensaje aquí…"></textarea>
+
+    <div class="nuevo-msg-actions">
+      <button class="btn-cancelar-nm" id="btn-cancelar-nuevo">Cancelar</button>
+      <button class="btn-enviar-nm" id="btn-confirmar-nuevo" disabled>📤 Enviar</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════ TOAST ════════════════════ -->
+  <div class="toast" id="toast" style="display:none" role="status" aria-live="polite"></div>
+
+  <!-- ════════════════════ SCRIPTS ════════════════════ -->
+  <script src="../JS/supabase.js"></script>
+  <script src="../JS/auth.js"></script>
+  <script src="../JS/ajustes.js"></script>
+
+  <script>
+    /* ══════════════════════════════════════════════════════════
+       MENSAJES.JS — lógica de la página
+    ══════════════════════════════════════════════════════════ */
+
+    const _session = requireAuth();
+    const miId     = _session.id;
+    const miRol    = _session.rol;
+    const miNombre = _session.nombre.split(" ")[0];
+
+    let contactoActivoId   = null;
+    let contactoActivoNombre = null;
+    let contactoActivoRol  = null;
+    let tabActual          = "conversaciones";
+    let pollingInterval    = null;
+    let todosContactos     = [];
+
+    // ── Util ──────────────────────────────────────────────────
+    function rolLabel(rol) {
+      const map = { trabajador: "Trabajador", admin: "Administrador", especialista: "Especialista" };
+      return map[rol] || rol;
+    }
+
+    function rolColor(rol) {
+      const map = { trabajador: "#009E73", admin: "#0072B2", especialista: "#8e44ad" };
+      return map[rol] || "#888";
+    }
+
+    function rolTagClass(rol) {
+      return `tag-${rol}`;
+    }
+
+    function avatarLetra(nombre) {
+      return (nombre || "?")[0].toUpperCase();
+    }
+
+    function formatHora(isoString) {
+      if (!isoString) return "";
+      const d = new Date(isoString);
+      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function formatFecha(isoString) {
+      if (!isoString) return "";
+      const d   = new Date(isoString);
+      const hoy = new Date();
+      const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+      if (d.toDateString() === hoy.toDateString())  return "Hoy";
+      if (d.toDateString() === ayer.toDateString()) return "Ayer";
+      return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    }
+
+    function mostrarToast(msg, ms = 2800) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "flex";
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = "none"; }, ms);
+    }
+
+    // ── Init ──────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", async () => {
+      document.querySelector(".user-greeting").textContent = miNombre;
+
+    // Adaptar nav para especialista
+    if (_session && _session.rol === 'especialista') {
+      // Logo
+      // Nav "Tareas" -> "Pacientes"
+      const btnTareas = document.querySelector('.nav-btn.btn-tareas');
+      if (btnTareas) {
+        btnTareas.href = 'especialista.html';
+        btnTareas.innerHTML = '<span class="nav-icon">🩺</span> Pacientes';
+      }
+      // Cambiar icono 👤 -> 🩺 en el botón de usuario
+      const userBtn = document.querySelector('.header-user-btn');
+      if (userBtn) {
+        const greeting = userBtn.querySelector('.user-greeting');
+        userBtn.textContent = '';
+        userBtn.appendChild(document.createTextNode('🩺 '));
+        if (greeting) userBtn.appendChild(greeting);
+      }
+    }
+      if (_session.rol === 'admin') {
+        const userBtn = document.querySelector('.header-user-btn');
+        if (userBtn) {
+          const greetingEl = userBtn.querySelector('.user-greeting');
+          userBtn.textContent = '';
+          userBtn.appendChild(document.createTextNode('🛡️ '));
+          if (greetingEl) userBtn.appendChild(greetingEl);
+        }
+      }
+
+      // Trabajador: no puede iniciar conversaciones; mostrar solo sus convs
+      if (miRol === "trabajador") {
+        document.getElementById("btn-nuevo-msg").style.display = "none";
+        // Ocultar tab contactos para trabajador
+        document.getElementById("tab-todos").style.display = "none";
+        document.getElementById("tab-conv").textContent = "Mis mensajes";
+      } else {
+        document.getElementById("btn-nuevo-msg").style.display = "flex";
+      }
+
+      await cargarSidebar();
+      await cargarContactosParaSelectNuevo();
+
+      // Placeholder dinámico según rol
+      if (miRol === "trabajador") {
+        document.getElementById("placeholder-sub").textContent =
+          "Aquí verás los mensajes de tu equipo";
+      } else {
+        document.getElementById("placeholder-sub").textContent =
+          "Elige un trabajador para enviarle un mensaje";
+      }
+    });
+
+    // ── Sidebar ───────────────────────────────────────────────
+    async function cargarSidebar() {
+      const lista = document.getElementById("contactos-lista");
+      lista.innerHTML = '<div class="spinner">Cargando…</div>';
+
+      if (tabActual === "conversaciones") {
+        await renderConversaciones();
+      } else {
+        await renderTodosContactos();
+      }
+    }
+
+    async function renderConversaciones() {
+      const lista = document.getElementById("contactos-lista");
+      const { data: convs } = await sbGetConversaciones(miId);
+
+      if (!convs || convs.length === 0) {
+        lista.innerHTML = `
+          <div class="lista-vacia-msg">
+            <div class="vacia-icon">📭</div>
+            <p>Sin conversaciones aún</p>
+            ${miRol !== "trabajador" ? '<p style="margin-top:6px;font-size:0.75rem;">Pulsa ✏️ para escribir a alguien</p>' : ''}
+          </div>`;
+        return;
+      }
+
+      lista.innerHTML = "";
+      convs.forEach(c => {
+        const item = crearContactoItem(c.otroId, c.otroNombre, c.otroRol, c.ultimoMensaje, c.ultimaFecha, c.noLeidos);
+        lista.appendChild(item);
+      });
+    }
+
+    async function renderTodosContactos(filtro = "") {
+      const lista = document.getElementById("contactos-lista");
+
+      // Cargar trabajadores (y eventualmente especialistas si admin)
+      let contactos = [];
+      if (miRol === "admin") {
+        const [{ data: trab }, { data: esp }] = await Promise.all([
+          sbGetPerfilesTrabajadores(),
+          sbGetEspecialistas(),
+        ]);
+        contactos = [
+          ...(trab || []).map(t => ({ ...t, rol: "trabajador" })),
+          ...(esp  || []).map(e => ({ ...e, rol: "especialista" })),
+        ];
+      } else if (miRol === "especialista") {
+        const { data: trab } = await sbGetTrabajadoresDeEspecialista(miId);
+        contactos = (trab || []).map(t => ({ ...t, rol: "trabajador" }));
+      }
+
+      todosContactos = contactos;
+
+      if (filtro) {
+        contactos = contactos.filter(c =>
+          (c.nombre_completo || "").toLowerCase().includes(filtro.toLowerCase())
+        );
+      }
+
+      if (contactos.length === 0) {
+        lista.innerHTML = `<div class="lista-vacia-msg"><div class="vacia-icon">👥</div><p>No hay contactos</p></div>`;
+        return;
+      }
+
+      lista.innerHTML = "";
+      contactos.forEach(c => {
+        const item = crearContactoItem(c.id, c.nombre_completo, c.rol, null, null, 0);
+        lista.appendChild(item);
+      });
+    }
+
+    function crearContactoItem(id, nombre, rol, preview, fecha, noLeidos) {
+      const div = document.createElement("div");
+      div.className = "contacto-item" + (id === contactoActivoId ? " activo" : "");
+      div.dataset.id = id;
+
+      const inicial = avatarLetra(nombre);
+      const color   = rolColor(rol);
+      const tag     = rolLabel(rol);
+      const badgeHtml = noLeidos > 0
+        ? `<span class="contacto-badge">${noLeidos}</span>` : "";
+      const previewHtml = preview
+        ? `<div class="contacto-preview">${preview.length > 42 ? preview.slice(0,42)+"…" : preview}</div>` : "";
+      const horaHtml = fecha
+        ? `<div class="contacto-hora">${formatFecha(fecha)}</div>` : "";
+
+      div.innerHTML = `
+        <div class="contacto-avatar rol-${rol}" style="background:${color}">${inicial}</div>
+        <div class="contacto-info">
+          <div class="contacto-nombre">${nombre || "—"}</div>
+          ${previewHtml}
+        </div>
+        <div class="contacto-meta">
+          ${horaHtml}
+          ${badgeHtml || `<span class="contacto-rol-tag ${rolTagClass(rol)}">${tag}</span>`}
+        </div>`;
+
+      div.addEventListener("click", () => abrirConversacion(id, nombre, rol));
+      return div;
+    }
+
+    // ── Abrir conversación ─────────────────────────────────────
+    async function abrirConversacion(id, nombre, rol) {
+      contactoActivoId     = id;
+      contactoActivoNombre = nombre;
+      contactoActivoRol    = rol;
+
+      // Marcar activo en sidebar
+      document.querySelectorAll(".contacto-item").forEach(el => {
+        el.classList.toggle("activo", el.dataset.id === id);
+      });
+
+      // Mostrar panel chat
+      document.getElementById("chat-placeholder").style.display = "none";
+      const chatActivo = document.getElementById("chat-activo");
+      chatActivo.style.display = "flex";
+      chatActivo.style.flexDirection = "column";
+
+      // Header
+      document.getElementById("chat-avatar").textContent = avatarLetra(nombre);
+      document.getElementById("chat-avatar").style.background = rolColor(rol);
+      document.getElementById("chat-nombre").textContent = nombre;
+      document.getElementById("chat-rol-label").textContent = rolLabel(rol);
+
+      // Bloquear input si trabajador y el otro es también trabajador (no debería pasar)
+      // Trabajador SÍ puede responder a admin/especialista
+      document.getElementById("chat-input-area").style.display =
+        (miRol === "trabajador" && rol === "trabajador") ? "none" : "flex";
+
+      await cargarMensajes();
+      await sbMarcarMensajesLeidos(id, miId);
+
+      // Polling cada 5 s
+      clearInterval(pollingInterval);
+      pollingInterval = setInterval(async () => {
+        await cargarMensajes(false);
+        await sbMarcarMensajesLeidos(id, miId);
+      }, 5000);
+    }
+
+    async function cargarMensajes(scrollAbajo = true) {
+      const { data: msgs } = await sbGetMensajesConversacion(miId, contactoActivoId);
+      renderMensajes(msgs || [], scrollAbajo);
+    }
+
+    function renderMensajes(msgs, scrollAbajo = true) {
+      const contenedor = document.getElementById("chat-mensajes");
+      const prevScrollTop = contenedor.scrollTop;
+      const prevHeight    = contenedor.scrollHeight;
+
+      contenedor.innerHTML = "";
+      let lastFecha = null;
+
+      msgs.forEach(m => {
+        const esMio = m.remitente_id === miId;
+        const fechaStr = formatFecha(m.created_at);
+
+        // Separador de fecha
+        if (fechaStr !== lastFecha) {
+          const sep = document.createElement("div");
+          sep.className = "msg-date-sep";
+          sep.textContent = fechaStr;
+          contenedor.appendChild(sep);
+          lastFecha = fechaStr;
+        }
+
+        const wrap = document.createElement("div");
+        wrap.className = `msg-bubble-wrap ${esMio ? "propio" : "otro"}`;
+
+        const avatarColor = esMio ? rolColor(miRol) : rolColor(contactoActivoRol);
+        const avatarLetraStr = esMio ? avatarLetra(_session.nombre) : avatarLetra(contactoActivoNombre);
+
+        wrap.innerHTML = `
+          <div class="bubble-avatar" style="background:${avatarColor}">${avatarLetraStr}</div>
+          <div class="msg-bubble">
+            <div class="bubble-nombre">${esMio ? "" : contactoActivoNombre}</div>
+            ${m.contenido.replace(/\n/g, "<br>")}
+            <div class="bubble-hora">${formatHora(m.created_at)}</div>
+          </div>`;
+
+        contenedor.appendChild(wrap);
+      });
+
+      if (scrollAbajo) {
+        contenedor.scrollTop = contenedor.scrollHeight;
+      } else {
+        // Mantener posición de scroll si el usuario está leyendo arriba
+        const newHeight = contenedor.scrollHeight;
+        if (contenedor.scrollTop + contenedor.clientHeight >= prevHeight - 20) {
+          contenedor.scrollTop = newHeight;
+        }
+      }
+    }
+
+    // ── Enviar mensaje ────────────────────────────────────────
+    const textarea = document.getElementById("chat-textarea");
+    const btnEnviar = document.getElementById("btn-enviar-msg");
+
+    textarea.addEventListener("input", () => {
+      btnEnviar.disabled = textarea.value.trim() === "";
+      textarea.style.height = "auto";
+      textarea.style.height = Math.min(textarea.scrollHeight, 140) + "px";
+    });
+
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!btnEnviar.disabled) enviarMensaje();
+      }
+    });
+
+    btnEnviar.addEventListener("click", enviarMensaje);
+
+    async function enviarMensaje() {
+      const texto = textarea.value.trim();
+      if (!texto || !contactoActivoId) return;
+
+      btnEnviar.disabled = true;
+      textarea.value = "";
+      textarea.style.height = "auto";
+
+      const { error } = await sbEnviarMensaje(miId, contactoActivoId, texto);
+      if (error) {
+        mostrarToast("❌ Error al enviar. Inténtalo de nuevo.");
+        btnEnviar.disabled = false;
+        return;
+      }
+
+      await cargarMensajes();
+      // Refrescar sidebar para actualizar preview
+      await cargarSidebar();
+    }
+
+    // ── Nuevo mensaje (admin/especialista) ────────────────────
+    document.getElementById("btn-nuevo-msg").addEventListener("click", () => {
+      document.getElementById("overlay-nuevo").classList.remove("hidden");
+      document.getElementById("panel-nuevo-msg").classList.remove("hidden");
+      document.getElementById("textarea-nuevo-msg").value = "";
+      document.getElementById("select-destinatario").value = "";
+      document.getElementById("btn-confirmar-nuevo").disabled = true;
+    });
+
+    document.getElementById("btn-cancelar-nuevo").addEventListener("click", cerrarPanelNuevo);
+    document.getElementById("overlay-nuevo").addEventListener("click", cerrarPanelNuevo);
+
+    function cerrarPanelNuevo() {
+      document.getElementById("overlay-nuevo").classList.add("hidden");
+      document.getElementById("panel-nuevo-msg").classList.add("hidden");
+    }
+
+    document.getElementById("select-destinatario").addEventListener("change", actualizarBtnNuevo);
+    document.getElementById("textarea-nuevo-msg").addEventListener("input", actualizarBtnNuevo);
+
+    function actualizarBtnNuevo() {
+      const dest  = document.getElementById("select-destinatario").value;
+      const texto = document.getElementById("textarea-nuevo-msg").value.trim();
+      document.getElementById("btn-confirmar-nuevo").disabled = !(dest && texto);
+    }
+
+    document.getElementById("btn-confirmar-nuevo").addEventListener("click", async () => {
+      const destId = document.getElementById("select-destinatario").value;
+      const texto  = document.getElementById("textarea-nuevo-msg").value.trim();
+      if (!destId || !texto) return;
+
+      document.getElementById("btn-confirmar-nuevo").disabled = true;
+      const { error } = await sbEnviarMensaje(miId, destId, texto);
+
+      if (error) {
+        mostrarToast("❌ Error al enviar.");
+        document.getElementById("btn-confirmar-nuevo").disabled = false;
+        return;
+      }
+
+      cerrarPanelNuevo();
+      mostrarToast("✅ Mensaje enviado");
+
+      // Buscar nombre del destinatario y abrir conversación
+      const opt = document.getElementById("select-destinatario").selectedOptions[0];
+      const nombre = opt?.textContent || "Usuario";
+      const rol    = opt?.dataset?.rol || "trabajador";
+
+      tabActual = "conversaciones";
+      document.getElementById("tab-conv").classList.add("active");
+      document.getElementById("tab-todos").classList.remove("active");
+
+      await cargarSidebar();
+      await abrirConversacion(destId, nombre, rol);
+    });
+
+    async function cargarContactosParaSelectNuevo() {
+      if (miRol === "trabajador") return;
+      const sel = document.getElementById("select-destinatario");
+
+      let contactos = [];
+      if (miRol === "admin") {
+        const [{ data: trab }, { data: esp }] = await Promise.all([
+          sbGetPerfilesTrabajadores(),
+          sbGetEspecialistas(),
+        ]);
+        contactos = [
+          ...(trab || []).map(t => ({ ...t, rol: "trabajador" })),
+          ...(esp  || []).map(e => ({ ...e, rol: "especialista" })),
+        ];
+      } else if (miRol === "especialista") {
+        const { data: trab } = await sbGetTrabajadoresDeEspecialista(miId);
+        contactos = (trab || []).map(t => ({ ...t, rol: "trabajador" }));
+      }
+
+      sel.innerHTML = '<option value="">— Selecciona una persona —</option>';
+      contactos.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${c.nombre_completo} (${rolLabel(c.rol)})`;
+        opt.dataset.rol = c.rol;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ── Tabs sidebar ─────────────────────────────────────────
+    document.getElementById("tab-conv").addEventListener("click", async () => {
+      tabActual = "conversaciones";
+      document.getElementById("tab-conv").classList.add("active");
+      document.getElementById("tab-todos").classList.remove("active");
+      await cargarSidebar();
+    });
+
+    document.getElementById("tab-todos").addEventListener("click", async () => {
+      tabActual = "contactos";
+      document.getElementById("tab-todos").classList.add("active");
+      document.getElementById("tab-conv").classList.remove("active");
+      await cargarSidebar();
+    });
+
+    // ── Búsqueda ─────────────────────────────────────────────
+    document.getElementById("buscar-contacto").addEventListener("input", async (e) => {
+      const q = e.target.value.trim();
+      if (tabActual === "contactos") {
+        await renderTodosContactos(q);
+      } else {
+        // Filtrar conversaciones localmente
+        const items = document.querySelectorAll(".contacto-item");
+        items.forEach(item => {
+          const nombre = item.querySelector(".contacto-nombre")?.textContent || "";
+          item.style.display = nombre.toLowerCase().includes(q.toLowerCase()) ? "" : "none";
+        });
+      }
+    });
+
+  </script>
+
+</body>
+</html>
