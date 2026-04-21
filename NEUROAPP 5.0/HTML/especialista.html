@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Especialista – NeuroVida</title>  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    body { background: var(--bg); font-family: var(--font); color: var(--text); min-height: 100vh; }
+
+    .esp-header {
+      background: linear-gradient(135deg, #005A8E 0%, #003D63 100%);
+      color: #fff;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      position: sticky; top: 0; z-index: 200;
+    }
+    .esp-header-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+    }
+    .esp-logo { display: flex; align-items: center; gap: 10px; }
+    .esp-logo-icon { font-size: 1.8rem; }
+    .esp-logo h1 { font-size: 1.2rem; margin: 0; }
+    .esp-logo p  { font-size: 0.75rem; opacity: .8; margin: 0; }
+    .esp-header-right { display: flex; align-items: center; gap: 10px; }
+    .esp-rol-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+    }
+    .btn-logout {
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      color: #fff; border-radius: 8px;
+      padding: 6px 14px; cursor: pointer;
+      font-family: var(--font); font-size: 0.85rem;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── Main layout ────────────────────────────────────────────────── */
+    .esp-layout {
+      max-width: 1100px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+      padding: 24px 16px 48px;
+    }
+    @media (max-width: 720px) {
+      .esp-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Sidebar lista pacientes ──────────────────────────────────── */
+    .sidebar-pacientes {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #E8E0D0);
+      overflow: hidden;
+    }
+    .sidebar-title {
+      background: #005A8E; color: #fff;
+      padding: 14px 16px;
+      font-size: 0.85rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .paciente-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border, #E8E0D0);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .paciente-item:hover { background: var(--bg); }
+    .paciente-item.activo { background: #EBF4FB; border-left: 4px solid var(--blue); }
+    .paciente-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1rem; flex-shrink: 0;
+    }
+    .paciente-info { flex: 1; min-width: 0; }
+    .paciente-nombre { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .paciente-usuario { font-size: 0.72rem; color: var(--subtle); }
+
+    /* Semáforo de estado */
+    .semaforo {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .semaforo.verde   { background: var(--green); }
+    .semaforo.naranja { background: var(--orange); }
+    .semaforo.rojo    { background: var(--red); }
+
+    .sidebar-vacio { padding: 32px 16px; text-align: center; color: var(--subtle); font-size: 0.9rem; }
+
+    /* ── Panel detalle paciente ─────────────────────────────────── */
+    .detalle-panel { min-width: 0; }
+
+    .detalle-placeholder {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 400px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px dashed var(--border, #E8E0D0);
+      color: var(--subtle); text-align: center; padding: 32px;
+    }
+    .placeholder-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .detalle-contenido { display: none; }
+    .detalle-contenido.visible { display: block; }
+
+    /* Cabecera paciente */
+    .paciente-header-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #E8E0D0);
+      padding: 20px;
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 16px;
+    }
+    .paciente-header-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: 900; flex-shrink: 0;
+    }
+    .paciente-header-info h2 { font-size: 1.2rem; margin: 0 0 4px; }
+    .paciente-header-info p  { font-size: 0.8rem; color: var(--subtle); margin: 0; }
+
+    /* Grid de secciones */
+    .detalle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) { .detalle-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #E8E0D0);
+      padding: 18px 16px;
+    }
+    .card-title {
+      font-size: 0.78rem; font-weight: 900;
+      color: var(--subtle);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin: 0 0 14px;
+    }
+    .card-full { grid-column: 1 / -1; }
+
+    /* KPIs tareas */
+    .kpi-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .kpi {
+      flex: 1; min-width: 80px;
+      text-align: center;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 12px 8px;
+    }
+    .kpi-num { font-size: 1.6rem; font-weight: 900; display: block; line-height: 1; }
+    .kpi-lbl { font-size: 0.68rem; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; display: block; }
+
+    /* Chart */
+    .chart-wrap { position: relative; height: 180px; }
+
+    /* Lista tareas resumen */
+    .tarea-resumen-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border, #E8E0D0);
+      font-size: 0.85rem;
+    }
+    .tarea-resumen-item:last-child { border-bottom: none; }
+    .tarea-resumen-titulo { flex: 1; font-weight: 700; }
+    .tarea-pct { font-size: 0.78rem; color: var(--subtle); }
+    .barra-mini { height: 5px; border-radius: 3px; background: var(--border, #E8E0D0); flex: 1; }
+    .barra-mini-fill { height: 100%; border-radius: 3px; background: var(--green); }
+
+    /* Estado badges */
+    .badge {
+      font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    }
+    .badge-completado  { background: #E6F6F1; color: var(--green); }
+    .badge-en_progreso { background: #EBF4FB; color: var(--blue); }
+    .badge-pendiente   { background: var(--bg); color: var(--subtle); }
+
+    /* ── Notas clínicas ─────────────────────────────────────────── */
+    .nota-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .nota-textarea {
+      width: 100%; min-height: 90px;
+      border: 2px solid var(--border, #E8E0D0);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: var(--font); font-size: 0.9rem; resize: vertical;
+      background: var(--bg); color: var(--text);
+    }
+    .nota-textarea:focus { outline: none; border-color: var(--blue); }
+    .btn-guardar-nota {
+      align-self: flex-end;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 8px 20px; cursor: pointer;
+      font-family: var(--font); font-size: 0.88rem; font-weight: 700;
+    }
+    .btn-guardar-nota:hover { background: #005A8E; }
+    .btn-guardar-nota:disabled { opacity: .5; cursor: not-allowed; }
+
+    .nota-item {
+      background: var(--bg); border-radius: 8px;
+      padding: 12px 14px; margin-bottom: 8px;
+      border-left: 4px solid var(--blue);
+      position: relative;
+    }
+    .nota-meta { font-size: 0.72rem; color: var(--subtle); margin-bottom: 4px; }
+    .nota-contenido { font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
+    .btn-borrar-nota {
+      position: absolute; top: 8px; right: 8px;
+      background: none; border: none; cursor: pointer;
+      color: var(--subtle); font-size: 1rem; padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-borrar-nota:hover { background: var(--border, #E8E0D0); color: var(--red); }
+    .notas-vacias { color: var(--subtle); font-size: 0.88rem; text-align: center; padding: 16px 0; }
+
+    /* ── Toast ──────────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: var(--text); color: #fff;
+      padding: 12px 20px; border-radius: 10px;
+      font-size: 0.9rem; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      transition: opacity .3s;
+    }
+    .toast.verde { background: var(--green); }
+    .toast.rojo  { background: var(--red); }
+    .toast.hidden { display: none; }
+
+    /* ── Loader ─────────────────────────────────────────────────── */
+    .loader { text-align: center; padding: 60px; color: var(--subtle); }
+  </style>
+  <link rel="stylesheet" href="../CSS/neurovida.css" />
+  <link rel="stylesheet" href="../CSS/header.css" />
+  <link rel="stylesheet" href="../CSS/ajustes.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════ HEADER UNIFICADO ════════════════════════ -->
+  <header class="header-main" role="banner">
+    <a class="header-logo" href="../index.html" aria-label="NeuroVida – Inicio">
+      <div class="header-logo-icon" aria-hidden="true">🧠</div>
+      <h1>Neuro<span>Vida</span></h1>
+    </a>
+
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a class="nav-btn btn-tareas active" href="especialista.html">
+        <span class="nav-icon">🩺</span> Pacientes
+      </a>
+      <a class="nav-btn btn-agenda" href="agenda.html">
+        <span class="nav-icon">📅</span> Agenda
+      </a>
+      <a class="nav-btn btn-mensajes" href="mensajes.html">
+        <span class="nav-icon">💬</span> Mensajes
+      </a>
+    </nav>
+
+    <div class="header-acciones">
+      <button class="header-icon-btn" onclick="abrirAjustes()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+      <button class="header-icon-btn header-user-btn" aria-label="Perfil">
+        🩺 <span id="esp-nombre">Especialista</span>
+      </button>
+    </div>
+  </header>
+
+<!-- LAYOUT -->
+<div class="esp-layout">
+
+  <!-- SIDEBAR: lista de pacientes asignados -->
+  <aside class="sidebar-pacientes">
+    <div class="sidebar-title">👥 Mis pacientes</div>
+    <div id="lista-pacientes">
+      <div class="loader">Cargando…</div>
+    </div>
+  </aside>
+
+  <!-- PANEL DETALLE -->
+  <section class="detalle-panel">
+
+    <!-- Placeholder cuando no hay paciente seleccionado -->
+    <div class="detalle-placeholder" id="detalle-placeholder">
+      <div class="placeholder-icon">🩺</div>
+      <p><strong>Selecciona un paciente</strong> de la lista para ver su panel clínico.</p>
+    </div>
+
+    <!-- Contenido del paciente seleccionado -->
+    <div class="detalle-contenido" id="detalle-contenido">
+
+      <!-- Cabecera -->
+      <div class="paciente-header-card">
+        <div class="paciente-header-avatar" id="det-avatar">?</div>
+        <div class="paciente-header-info">
+          <h2 id="det-nombre">—</h2>
+          <p id="det-usuario">—</p>
+        </div>
+      </div>
+
+      <!-- Grid: KPIs + gráfico -->
+      <div class="detalle-grid">
+
+        <!-- KPIs de tareas -->
+        <div class="card">
+          <p class="card-title">📋 Estado de tareas</p>
+          <div class="kpi-row">
+            <div class="kpi">
+              <span class="kpi-num" id="kpi-total" style="color:var(--blue)">—</span>
+              <span class="kpi-lbl">Total</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-num" id="kpi-completadas" style="color:var(--green)">—</span>
+              <span class="kpi-lbl">Listas</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-num" id="kpi-progreso" style="color:var(--orange)">—</span>
+              <span class="kpi-lbl">En curso</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-num" id="kpi-autonomia" style="color:var(--blue)">—%</span>
+              <span class="kpi-lbl">Autonomía semana</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico autonomía -->
+        <div class="card">
+          <p class="card-title">📈 Autonomía semanal</p>
+          <div class="chart-wrap">
+            <canvas id="chart-autonomia"></canvas>
+          </div>
+        </div>
+
+        <!-- Lista de tareas -->
+        <div class="card card-full">
+          <p class="card-title">📝 Tareas asignadas</p>
+          <div id="lista-tareas-det"></div>
+        </div>
+
+      </div>
+
+      <!-- Notas clínicas -->
+      <div class="card">
+        <p class="card-title">🔒 Notas clínicas privadas</p>
+        <div class="nota-form">
+          <textarea class="nota-textarea" id="nota-textarea" placeholder="Escribe una nota clínica sobre este paciente…" maxlength="1000"></textarea>
+          <button class="btn-guardar-nota" id="btn-guardar-nota">Guardar nota</button>
+        </div>
+        <div id="lista-notas"></div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="../JS/supabase.js"></script>
+<script src="../JS/auth.js"></script>
+<script src="../JS/ajustes.js"></script>
+<script>
+/* ── Estado global ──────────────────────────────────────────────── */
+let _session;
+let _pacienteActual = null;
+let _chartInstance  = null;
+
+/* ── Init ───────────────────────────────────────────────────────── */
+(async () => {
+  try { _session = requireAuth("especialista"); } catch(e) { return; }
+  document.getElementById("esp-nombre").textContent = _session.nombre;
+  // Badge mensajes no leídos
+  (async () => {
+    if (typeof sbContarNoLeidos !== 'function' || !_session) return;
+    const { count } = await sbContarNoLeidos(_session.id);
+    if (count > 0) {
+      const btn = document.querySelector('.nav-btn.btn-mensajes');
+      if (btn) {
+        btn.style.position = 'relative';
+        const b = document.createElement('span');
+        b.className = 'nav-msg-badge';
+        b.textContent = count > 99 ? '99+' : count;
+        btn.appendChild(b);
+      }
+    }
+  })();
+  await cargarPacientes();
+})();
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+function toast(msg, tipo = "") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast" + (tipo ? " " + tipo : "");
+  el.classList.remove("hidden");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.add("hidden"), 2800);
+}
+
+function inicialAvatar(nombre) {
+  return (nombre || "?").trim().split(" ").map(p => p[0]).join("").slice(0,2).toUpperCase();
+}
+
+function semaforo(tareas) {
+  if (!tareas || tareas.length === 0) return "naranja";
+  const completadas = tareas.filter(t => t.estado === "completado").length;
+  const pct = completadas / tareas.length;
+  if (pct >= 0.7) return "verde";
+  if (pct >= 0.3) return "naranja";
+  return "rojo";
+}
+
+function fechaNota(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+    + " · " + d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ── Cargar lista de pacientes ──────────────────────────────────── */
+async function cargarPacientes() {
+  const { data: pacientes, error } = await sbGetTrabajadoresDeEspecialista(_session.id);
+  const lista = document.getElementById("lista-pacientes");
+
+  if (error || !pacientes.length) {
+    lista.innerHTML = `<div class="sidebar-vacio">No tienes pacientes asignados todavía.</div>`;
+    return;
+  }
+
+  // Para cada paciente cargamos sus tareas para el semáforo
+  const tareasPromises = pacientes.map(p => sbGetTareas(p.id));
+  const tareasResults  = await Promise.all(tareasPromises);
+
+  lista.innerHTML = "";
+  pacientes.forEach((p, i) => {
+    const tareas = tareasResults[i].data || [];
+    const color  = semaforo(tareas);
+
+    const div = document.createElement("div");
+    div.className = "paciente-item";
+    div.innerHTML = `
+      <div class="paciente-avatar">${inicialAvatar(p.nombre_completo)}</div>
+      <div class="paciente-info">
+        <div class="paciente-nombre">${p.nombre_completo}</div>
+        <div class="paciente-usuario">@${p.usuario}</div>
+      </div>
+      <div class="semaforo ${color}" title="${color === 'verde' ? 'Progreso bueno' : color === 'naranja' ? 'Progreso medio' : 'Necesita atención'}"></div>
+    `;
+    div.addEventListener("click", () => abrirPaciente(p, tareas, div));
+    lista.appendChild(div);
+  });
+}
+
+/* ── Abrir detalle de paciente ──────────────────────────────────── */
+async function abrirPaciente(paciente, tareas, itemEl) {
+  // Marcar activo en sidebar
+  document.querySelectorAll(".paciente-item").forEach(el => el.classList.remove("activo"));
+  itemEl.classList.add("activo");
+
+  _pacienteActual = paciente;
+
+  // Mostrar panel
+  document.getElementById("detalle-placeholder").style.display = "none";
+  const contenido = document.getElementById("detalle-contenido");
+  contenido.classList.add("visible");
+
+  // Cabecera
+  document.getElementById("det-avatar").textContent  = inicialAvatar(paciente.nombre_completo);
+  document.getElementById("det-nombre").textContent  = paciente.nombre_completo;
+  document.getElementById("det-usuario").textContent = "@" + paciente.usuario;
+
+  // KPIs tareas
+  const total       = tareas.length;
+  const completadas = tareas.filter(t => t.estado === "completado").length;
+  const enProgreso  = tareas.filter(t => t.estado === "en_progreso").length;
+  document.getElementById("kpi-total").textContent      = total;
+  document.getElementById("kpi-completadas").textContent = completadas;
+  document.getElementById("kpi-progreso").textContent    = enProgreso;
+
+  // KPI autonomía semana actual
+  const { data: metricas } = await sbGetMetricasAutonomia(paciente.id);
+  const semanaActual = getSemanaActual();
+  const sd = (metricas || []).find(s => s.semana === semanaActual);
+  const tasaPct = sd && (sd.pasos_solos + sd.ayudas) > 0
+    ? Math.round(sd.pasos_solos / (sd.pasos_solos + sd.ayudas) * 100)
+    : null;
+  document.getElementById("kpi-autonomia").textContent = tasaPct !== null ? tasaPct + "%" : "—%";
+
+  // Gráfico autonomía
+  renderGrafico(metricas || []);
+
+  // Lista de tareas
+  renderTareas(tareas);
+
+  // Notas clínicas
+  await renderNotas(paciente.id);
+}
+
+/* ── Gráfico autonomía semanal ─────────────────────────────────── */
+function renderGrafico(metricas) {
+  // Destruir instancia anterior
+  if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
+
+  // Reemplazar el canvas para evitar que Chart.js quede en estado corrupto
+  // al cambiar de paciente (bug conocido al reutilizar el mismo canvas)
+  const wrap = document.querySelector(".chart-wrap");
+  wrap.innerHTML = '<canvas id="chart-autonomia"></canvas>';
+  const canvas = document.getElementById("chart-autonomia");
+
+  if (!metricas.length) {
+    wrap.innerHTML = `<p style="color:var(--subtle);font-size:.85rem;text-align:center;padding:40px 0">Sin datos de autonomía aún</p>`;
+    return;
+  }
+
+  const labels = metricas.map((s, i) => `Sem. ${i + 1}`);
+  const tasas  = metricas.map(s => {
+    const tot = s.pasos_solos + s.ayudas;
+    return tot > 0 ? Math.round(s.pasos_solos / tot * 100) : 0;
+  });
+
+  _chartInstance = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Autonomía (%)",
+        data: tasas,
+        borderColor: "#0072B2",
+        backgroundColor: "rgba(0,114,178,0.1)",
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointBackgroundColor: "#0072B2",
+        tension: 0.35,
+        fill: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% autonomía` } },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } },
+      },
+    },
+  });
+}
+
+/* ── Lista de tareas ────────────────────────────────────────────── */
+function renderTareas(tareas) {
+  const cont = document.getElementById("lista-tareas-det");
+  if (!tareas.length) {
+    cont.innerHTML = `<p style="color:var(--subtle);font-size:.85rem">Sin tareas asignadas.</p>`;
+    return;
+  }
+  cont.innerHTML = tareas.map(t => {
+    const total  = (t.pasos || []).length;
+    const hechos = (t.pasos || []).filter(p => p.estado === "completado").length;
+    const pct    = total > 0 ? Math.round(hechos / total * 100) : 0;
+    const badgeCls = { completado: "badge-completado", en_progreso: "badge-en_progreso", pendiente: "badge-pendiente" }[t.estado] || "badge-pendiente";
+    const badgeTxt = { completado: "✓ Listo", en_progreso: "▶ En curso", pendiente: "○ Pendiente" }[t.estado] || "○ Pendiente";
+    return `
+      <div class="tarea-resumen-item">
+        <span class="tarea-resumen-titulo">${t.titulo}</span>
+        <div class="barra-mini"><div class="barra-mini-fill" style="width:${pct}%"></div></div>
+        <span class="tarea-pct">${pct}%</span>
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ── Notas clínicas ─────────────────────────────────────────────── */
+async function renderNotas(trabajadorId) {
+  const { data: notas, error } = await sbGetNotasClinicas(trabajadorId);
+  const cont = document.getElementById("lista-notas");
+
+  if (error) { cont.innerHTML = `<p class="notas-vacias">Error al cargar notas.</p>`; return; }
+  if (!notas.length) { cont.innerHTML = `<p class="notas-vacias">Aún no hay notas para este paciente.</p>`; return; }
+
+  cont.innerHTML = notas.map(n => `
+    <div class="nota-item" data-id="${n.id}">
+      <div class="nota-meta">🩺 ${n.autor} · ${fechaNota(n.created_at)}</div>
+      <div class="nota-contenido">${n.contenido.replace(/</g,"&lt;")}</div>
+      <button class="btn-borrar-nota" data-nota-id="${n.id}" aria-label="Borrar nota">🗑️</button>
+    </div>
+  `).join("");
+
+  cont.querySelectorAll(".btn-borrar-nota").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Borrar esta nota?")) return;
+      const { error } = await sbBorrarNotaClinica(btn.dataset.notaId);
+      if (error) { toast("⚠ Error al borrar", "rojo"); return; }
+      toast("Nota eliminada", "rojo");
+      await renderNotas(trabajadorId);
+    });
+  });
+}
+
+document.getElementById("btn-guardar-nota").addEventListener("click", async () => {
+  if (!_pacienteActual) return;
+  const texto = document.getElementById("nota-textarea").value.trim();
+  if (!texto) { toast("⚠ Escribe algo antes de guardar", "rojo"); return; }
+
+  const btn = document.getElementById("btn-guardar-nota");
+  btn.disabled = true;
+  const { error } = await sbCrearNotaClinica(_session.id, _pacienteActual.id, texto);
+  btn.disabled = false;
+
+  if (error) { toast("⚠ Error al guardar nota", "rojo"); return; }
+  document.getElementById("nota-textarea").value = "";
+  toast("✅ Nota guardada", "verde");
+  await renderNotas(_pacienteActual.id);
+});
+
+/* ── Helper semana actual ───────────────────────────────────────── */
+function getSemanaActual() {
+  const hoy = new Date();
+  const dow  = hoy.getDay();
+  const diff = (dow === 0 ? -6 : 1 - dow);
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() + diff);
+  lunes.setHours(0,0,0,0);
+  return lunes.toISOString().slice(0,10);
+}
+</script>
+</body>
+</html>

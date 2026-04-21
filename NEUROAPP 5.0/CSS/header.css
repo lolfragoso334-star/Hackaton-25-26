@@ -1,0 +1,322 @@
+/* ══════════════════════════════════════════════════════════════
+   HEADER UNIFICADO NeuroVida — v3.4
+   Este archivo manda sobre cualquier otro CSS de header.
+   Cargarlo SIEMPRE después de neurovida.css y antes del CSS
+   específico de cada página.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Anular cualquier header heredado ── */
+header.header-main,
+.header-main {
+  background: var(--blue) !important;
+  color: #fff !important;
+  padding: 18px 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18) !important;
+  flex-wrap: wrap !important;
+  position: sticky !important;
+  top: 0 !important;
+  position: relative !important;
+  z-index: 300 !important;
+  width: 100% !important;
+}
+
+/* ── Logo ── */
+.header-main .header-logo {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex-shrink: 0 !important;
+  text-decoration: none !important;
+  color: #fff !important;
+}
+
+.header-main .header-logo-icon {
+  width: 58px !important;
+  height: 58px !important;
+  background: var(--yellow) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 28px !important;
+  flex-shrink: 0 !important;
+}
+
+.header-main .header-logo h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em !important;
+  color: #fff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+}
+
+.header-main .header-logo h1 span {
+  color: var(--yellow) !important;
+}
+
+/* ── Navegación central ── */
+.header-main .header-nav {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  pointer-events: auto !important;
+}
+
+/* Botón nav — base */
+.header-main .nav-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 14px 26px !important;
+  min-width: 148px !important;
+  border-radius: 50px !important;
+  border: 3px solid rgba(255,255,255,0.5) !important;
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+  font-family: var(--font) !important;
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: background .15s, border-color .15s, transform .12s !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+
+.header-main .nav-btn:hover,
+.header-main .nav-btn:focus {
+  background: rgba(255,255,255,0.25) !important;
+  border-color: #fff !important;
+  transform: scale(1.04) !important;
+  outline: 3px solid var(--yellow) !important;
+  outline-offset: 2px !important;
+}
+
+.header-main .nav-btn.active {
+  border-color: var(--yellow) !important;
+  outline: 2px solid var(--yellow) !important;
+  outline-offset: 2px !important;
+}
+
+/* Colores de cada botón */
+.header-main .nav-btn.btn-tareas  { background: #27ae60 !important; border-color: #27ae60 !important; }
+.header-main .nav-btn.btn-tareas:hover  { background: #219150 !important; border-color: #219150 !important; }
+
+.header-main .nav-btn.btn-agenda  { background: var(--orange, #E69F00) !important; border-color: var(--orange, #E69F00) !important; color: #fff !important; }
+.header-main .nav-btn.btn-agenda:hover  { background: #c88600 !important; border-color: #c88600 !important; }
+
+.header-main .nav-btn.btn-mensaje { background: #8e44ad !important; border-color: #8e44ad !important; }
+.header-main .nav-btn.btn-mensaje:hover { background: #7d3c98 !important; border-color: #7d3c98 !important; }
+
+.header-main .nav-btn .nav-icon {
+  font-size: 1.5rem !important;
+  line-height: 1 !important;
+}
+
+/* ── Zona derecha ── */
+.header-main .header-acciones {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+  flex-wrap: wrap !important;
+}
+
+/* Badge completadas */
+.header-main .header-badge-completadas {
+  background: rgba(255,255,255,0.15) !important;
+  border-radius: 10px !important;
+  padding: 10px 18px !important;
+  text-align: center !important;
+  min-width: 86px !important;
+}
+
+.header-main .badge-num {
+  display: block !important;
+  font-size: 2rem !important;
+  font-weight: 900 !important;
+  color: var(--yellow) !important;
+  line-height: 1 !important;
+}
+
+.header-main .badge-label {
+  display: block !important;
+  font-size: 0.72rem !important;
+  color: rgba(255,255,255,0.8) !important;
+  margin-top: 2px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Botones icono */
+.header-main .header-icon-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  border-radius: var(--radius, 12px) !important;
+  border: 3px solid rgba(255,255,255,0.5) !important;
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+  font-family: var(--font) !important;
+  font-size: 1.7rem !important;
+  cursor: pointer !important;
+  transition: transform .15s, background .15s !important;
+  padding: 0 16px !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+.header-main .header-icon-btn:hover,
+.header-main .header-icon-btn:focus {
+  background: rgba(255,255,255,0.28) !important;
+  border-color: #fff !important;
+  transform: scale(1.05) !important;
+  outline: 3px solid var(--yellow) !important;
+  outline-offset: 2px !important;
+}
+
+.header-main .header-user-btn {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+}
+
+/* Stat pills (admin / agenda) */
+.header-main .header-stats {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.header-main .stat-pill {
+  background: rgba(255,255,255,0.15) !important;
+  border: 1.5px solid rgba(255,255,255,0.3) !important;
+  border-radius: 99px !important;
+  padding: 5px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  min-width: 52px !important;
+}
+
+.header-main .stat-pill--green { border-color: var(--green) !important; }
+
+.header-main .stat-num {
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  color: #fff !important;
+}
+
+.header-main .stat-label {
+  font-size: 0.62rem !important;
+  color: rgba(255,255,255,0.8) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* Badge notificaciones */
+.header-main .header-notif-wrap { position: relative !important; }
+
+.header-main .header-notif-badge {
+  position: absolute !important;
+  top: -5px !important;
+  right: -5px !important;
+  background: var(--red) !important;
+  color: #fff !important;
+  font-size: 0.62rem !important;
+  font-weight: 900 !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 99px !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  border: 2px solid var(--blue) !important;
+  animation: nvPulseBadge 1.8s ease-in-out infinite !important;
+}
+
+.header-main .header-notif-badge.visible {
+  display: flex !important;
+}
+
+@keyframes nvPulseBadge {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.2); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .header-main {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  .header-main .header-nav {
+    order: 3 !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .header-main .nav-btn {
+    padding: 10px 16px !important;
+    min-width: 110px !important;
+    font-size: 1rem !important;
+  }
+
+  .header-main .header-logo h1 {
+    font-size: 1.3rem !important;
+  }
+
+  .header-main .header-logo-icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+  }
+
+  .header-main .header-icon-btn {
+    height: 46px !important;
+    min-width: 46px !important;
+    font-size: 1.3rem !important;
+    padding: 0 10px !important;
+  }
+}
+
+/* ── Badge mensajes no leídos en nav ── */
+.header-main .nav-btn.btn-mensajes {
+  position: relative !important;
+}
+.nav-msg-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  pointer-events: none;
+  border: 2px solid var(--blue, #0072B2);
+  line-height: 1;
+}
