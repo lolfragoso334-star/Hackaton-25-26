@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Autonomía – NeuroVida</title>  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: var(--bg); font-family: var(--font); color: var(--text); }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--blue) 0%, #005A8E 100%);
+      color: #fff;
+      padding: 20px 24px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .page-header h1 { font-size: 1.3rem; margin: 0; }
+    .btn-volver {
+      background: rgba(255,255,255,0.18);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-volver:hover { background: rgba(255,255,255,0.28); }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+
+    /* KPI cards */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .kpi {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #D9D0C0);
+      padding: 16px 12px;
+      text-align: center;
+    }
+    .kpi-num {
+      font-size: 2rem;
+      font-weight: 900;
+      display: block;
+      line-height: 1.1;
+    }
+    .kpi-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* Gráfico principal */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 2px solid var(--border, #D9D0C0);
+      padding: 20px 16px 16px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 16px;
+    }
+    .chart-wrap { position: relative; height: 260px; }
+
+    /* Tasa de autonomía line chart */
+    .chart-wrap-sm { position: relative; height: 180px; }
+
+    /* Mensaje vacío */
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--subtle);
+    }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+
+    /* Insight box */
+    .insight {
+      background: var(--surface);
+      border-left: 6px solid var(--blue);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+    .insight.positive { border-color: var(--green); }
+    .insight.warning  { border-color: var(--orange); }
+
+    .loader {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--subtle);
+      font-size: 1rem;
+    }
+  </style>
+  <link rel="stylesheet" href="../CSS/neurovida.css" />
+  <link rel="stylesheet" href="../CSS/header.css" />
+  <link rel="stylesheet" href="../CSS/ajustes.css" />
+</head>
+<body>
+
+<!-- ════════════════════════ HEADER UNIFICADO ════════════════════════ -->
+  <header class="header-main" role="banner">
+    <a class="header-logo" href="../index.html" aria-label="NeuroVida – Inicio">
+      <div class="header-logo-icon" aria-hidden="true">🧠</div>
+      <h1>Neuro<span>Vida</span></h1>
+    </a>
+
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a class="nav-btn btn-tareas" href="../index.html">
+        <span class="nav-icon">✅</span> Tareas
+      </a>
+      <a class="nav-btn btn-agenda" href="agenda.html">
+        <span class="nav-icon">📅</span> Agenda
+      </a>
+      <a class="nav-btn btn-mensajes" href="mensajes.html">
+        <span class="nav-icon">💬</span> Mensajes
+      </a>
+    </nav>
+
+    <div class="header-acciones">
+      <button class="header-icon-btn" onclick="abrirAjustes()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+      <button class="header-icon-btn header-user-btn" onclick="history.back()" aria-label="Volver">
+        ← <span>Volver</span>
+      </button>
+    </div>
+  </header>
+
+<div class="container" id="main-content">
+  <div class="loader" id="loader">Cargando tus datos…</div>
+</div>
+
+<script src="../JS/supabase.js"></script>
+<script src="../JS/auth.js"></script>
+<script src="../JS/ajustes.js"></script>
+<script>
+(async () => {
+  const loader   = document.getElementById("loader");
+  const container = document.getElementById("main-content");
+
+  // ── Sesión ──────────────────────────────────────────────────────────
+  let session;
+  try { session = requireAuth(); } catch(e) { return; } // requireAuth ya redirige si no hay sesión
+
+  // ── Datos ────────────────────────────────────────────────────────────
+  const { data: metricas, error } = await sbGetMetricasAutonomia(session.id);
+
+  loader.remove();
+
+  if (error || !metricas || metricas.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <span class="empty-icon">🌱</span>
+        <p>Todavía no hay datos de autonomía.<br>Completa algunos pasos de tus tareas y vuelve aquí.</p>
+      </div>`;
+    return;
+  }
+
+  // ── Preparar series ───────────────────────────────────────────────────
+  const labels       = metricas.map((s, i) => `Sem. ${i + 1}`);
+  const pasosSolos   = metricas.map(s => s.pasos_solos);
+  const ayudas       = metricas.map(s => s.ayudas);
+  const tasas        = metricas.map(s => {
+    const total = s.pasos_solos + s.ayudas;
+    return total > 0 ? Math.round((s.pasos_solos / total) * 100) : 0;
+  });
+
+  // Última semana vs penúltima
+  const ultPasos  = pasosSolos[pasosSolos.length - 1] ?? 0;
+  const ultAyudas = ayudas[ayudas.length - 1] ?? 0;
+  const ultTasa   = tasas[tasas.length - 1] ?? 0;
+  const racha     = calcRacha(metricas);
+
+  const tendencia = (() => {
+    if (tasas.length < 2) return null;
+    const diff = tasas[tasas.length - 1] - tasas[tasas.length - 2];
+    if (diff >  5) return { icono: "⬆️", texto: "Tu autonomía ha mejorado esta semana. ¡Sigue así!", cls: "positive" };
+    if (diff < -5) return { icono: "⬇️", texto: "Esta semana pediste más ayuda que la anterior. ¡No pasa nada, es normal!", cls: "warning" };
+    return           { icono: "➡️", texto: "Tu autonomía se mantiene estable semana a semana.", cls: "" };
+  })();
+
+  // ── Render ────────────────────────────────────────────────────────────
+  const html = `
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <span class="kpi-num" style="color:var(--blue)">${racha}</span>
+        <span class="kpi-label">Días activos seguidos</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-num" style="color:var(--green)">${ultPasos}</span>
+        <span class="kpi-label">Pasos solos esta semana</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-num" style="color:var(--orange)">${ultAyudas}</span>
+        <span class="kpi-label">Ayudas pedidas esta semana</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-num" style="color:var(--blue)">${ultTasa}%</span>
+        <span class="kpi-label">Tasa autonomía semana actual</span>
+      </div>
+    </div>
+
+    ${tendencia ? `<div class="insight ${tendencia.cls}">${tendencia.icono} ${tendencia.texto}</div>` : ""}
+
+    <!-- Gráfico 1: barras apiladas pasos vs ayudas -->
+    <div class="card">
+      <p class="card-title">Pasos solos vs ayudas solicitadas por semana</p>
+      <div class="chart-wrap">
+        <canvas id="chart-barras"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico 2: línea tasa autonomía -->
+    <div class="card">
+      <p class="card-title">Evolución de la tasa de autonomía (%)</p>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-linea"></canvas>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  // ── Chart 1: barras apiladas ──────────────────────────────────────────
+  new Chart(document.getElementById("chart-barras"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Pasos solos",
+          data: pasosSolos,
+          backgroundColor: "#009E73",
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: "Ayudas solicitadas",
+          data: ayudas,
+          backgroundColor: "#E69F00",
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { font: { size: 12 }, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            footer: (items) => {
+              const total = items.reduce((s, i) => s + i.raw, 0);
+              const solos = items.find(i => i.datasetIndex === 0)?.raw ?? 0;
+              const pct   = total > 0 ? Math.round((solos / total) * 100) : 0;
+              return `Autonomía: ${pct}%`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } },
+      },
+    },
+  });
+
+  // ── Chart 2: línea tasa ───────────────────────────────────────────────
+  new Chart(document.getElementById("chart-linea"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Tasa de autonomía (%)",
+        data: tasas,
+        borderColor: "#0072B2",
+        backgroundColor: "rgba(0,114,178,0.12)",
+        borderWidth: 3,
+        pointRadius: 5,
+        pointBackgroundColor: "#0072B2",
+        tension: 0.35,
+        fill: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${ctx.raw}% de pasos sin ayuda` },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { callback: v => v + "%" },
+        },
+      },
+    },
+  });
+
+})();
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function calcRacha(metricas) {
+  // Las semanas vienen en orden asc; estimamos racha en semanas consecutivas
+  if (!metricas.length) return 0;
+  let racha = 1;
+  for (let i = metricas.length - 1; i > 0; i--) {
+    const curr = new Date(metricas[i].semana);
+    const prev = new Date(metricas[i - 1].semana);
+    const diffDays = (curr - prev) / (1000 * 60 * 60 * 24);
+    if (diffDays === 7) racha++;
+    else break;
+  }
+  return racha;
+}
+</script>
+</body>
+</html>
